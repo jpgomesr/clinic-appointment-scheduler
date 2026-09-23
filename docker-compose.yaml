@@ -1,0 +1,41 @@
+services:
+  api:
+    build: ./api
+    env_file:
+      - ./api/.env
+    environment:
+      DATABASE_URL: postgres://clinica:senha_clinica@postgres:5432/agendamentos
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clinica
+      POSTGRES_PASSWORD: senha_clinica
+      POSTGRES_DB: agendamentos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U clinica -d agendamentos"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+
+volumes:
+  postgres_data:
