@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 import appointmentsService from "./appointments.service";
-import { appointmentIdType, appointmentType } from "./dto/appointment.dto";
+import {
+   appointmentFilterType,
+   appointmentIdType,
+   appointmentType,
+} from "./dto/appointment.dto";
 
 const appointmentsController = {
    create: async (req: Request, res: Response) => {
@@ -73,9 +77,15 @@ const appointmentsController = {
 
    getAll: async (req: Request, res: Response) => {
       try {
-         const appointments = await appointmentsService.getAll();
+         const filter = appointmentFilterType.parse(req.query);
+         const appointments = await appointmentsService.getAll(filter);
          res.status(200).json({ appointments });
       } catch (error: any) {
+         if (error instanceof ZodError) {
+            return res.status(400).json({
+               message: error.issues.map((issue) => issue.message).join(", "),
+            });
+         }
          res.status(error.status ?? 500).json({ message: error.message });
       }
    },

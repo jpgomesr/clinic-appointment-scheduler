@@ -1,6 +1,6 @@
-import { and, eq, gt, isNull, lt, ne } from "drizzle-orm";
+import { and, eq, gt, gte, isNull, lt, ne } from "drizzle-orm";
 import { db } from "../db/client";
-import { AppointmentDto } from "./dto/appointment.dto";
+import { AppointmentDto, AppointmentFilterDto } from "./dto/appointment.dto";
 import { appointments } from "../db/schema";
 
 const appointmentsService = {
@@ -155,9 +155,25 @@ const appointmentsService = {
       return appointment;
    },
 
-   getAll: async () => {
+   getAll: async (filter: AppointmentFilterDto = {}) => {
+      const { professionalId, date } = filter;
+
+      let startOfDay: Date | undefined;
+      let endOfDay: Date | undefined;
+      if (date) {
+         startOfDay = new Date(`${date}T00:00:00.000Z`);
+         endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+      }
+
       const appointmentsList = await db.query.appointments.findMany({
-         where: isNull(appointments.deletedAt),
+         where: and(
+            isNull(appointments.deletedAt),
+            professionalId
+               ? eq(appointments.professionalId, professionalId)
+               : undefined,
+            startOfDay ? gte(appointments.startAt, startOfDay) : undefined,
+            endOfDay ? lt(appointments.startAt, endOfDay) : undefined,
+         ),
          orderBy: [appointments.startAt],
       });
       return appointmentsList;
