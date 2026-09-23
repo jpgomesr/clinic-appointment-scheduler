@@ -8,6 +8,20 @@
       "when": 1790117739399,
       "tag": "0000_reflective_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790163647024,
+      "tag": "0001_parallel_bucky",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790163910492,
+      "tag": "0002_youthful_expediter",
+      "breakpoints": true
     }
   ]
 }
