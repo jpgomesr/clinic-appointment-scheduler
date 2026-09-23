@@ -63,7 +63,8 @@ npm run dev           # http://localhost:3000
 src/
 ├── app.ts                  Configuração do Express (cors, json, cookies, rotas)
 ├── index.ts                Bootstrap: cria o HTTP server, sobe o Socket.IO e escuta a porta
-├── socket.ts               Setup do Socket.IO: autenticação do handshake via cookie JWT e rooms
+├── socket.ts               Setup do Socket.IO: autenticação do handshake via cookie JWT
+├── socket.events.ts         Tipos dos eventos de socket (ServerToClientEvents, SocketData)
 ├── auth/
 │   ├── auth.routes.ts       Rotas de autenticação
 │   ├── auth.controller.ts   Handlers HTTP (login, signup, me, logout)
@@ -94,9 +95,14 @@ lê nem manipula o token diretamente.
 
 - O handshake é autenticado lendo o mesmo cookie de sessão do REST e validando com `jwt.verify`
   (ver `src/socket.ts`); conexões sem cookie válido são rejeitadas.
-- Após conectar, o cliente entra em uma room por clínica com o evento `join:clinic`.
-- Os eventos de domínio da agenda (criação/movimentação/cancelamento de agendamento) ainda não estão
-  implementados — ver o "O que falta" no README raiz do repositório.
+- Não há conceito de clínica no modelo de dados hoje (só `professionals` e `appointments`), então os
+  eventos são broadcast global via `io.emit` para todos os clientes autenticados conectados, em vez de
+  isolados por room.
+- `appointments.controller.ts` emite `appointment:created`, `appointment:updated` e
+  `appointment:cancelled` (payloads tipados em `src/socket.events.ts`) após cada mutação bem-sucedida
+  de criar/editar/cancelar um agendamento.
+- O frontend ainda não escuta esses eventos — depende da tela de agenda, ver o "O que falta" no README
+  raiz do repositório.
 
 ## Banco de dados
 
