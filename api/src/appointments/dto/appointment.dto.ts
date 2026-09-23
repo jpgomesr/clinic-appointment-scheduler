@@ -1,10 +1,15 @@
 import { z } from "zod";
 
-export const appointmentType = z.object({
-   startAt: z.coerce.date(),
-   endAt: z.coerce.date(),
-   professionalId: z.uuid().nonempty(),
-});
+export const appointmentType = z
+   .object({
+      startAt: z.coerce.date(),
+      endAt: z.coerce.date(),
+      professionalId: z.uuid().nonempty(),
+   })
+   .refine((data) => data.startAt < data.endAt, {
+      message: "A data e hora de início deve ser no futuro",
+      path: ["startAt"], // aponta o erro pro campo certo
+   });
 
 export type AppointmentDto = z.infer<typeof appointmentType>;
 
