@@ -4,9 +4,19 @@ import { Server as HttpServer } from "http";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { parseCookie } from "cookie";
 import { TOKEN_COOKIE } from "./auth/auth.constants";
+import {
+   ClientToServerEvents,
+   ServerToClientEvents,
+   SocketData,
+} from "./socket.events";
 
 export function setupSocket(httpServer: HttpServer) {
-   const io = new Server(httpServer, {
+   const io = new Server<
+      ClientToServerEvents,
+      ServerToClientEvents,
+      Record<string, never>,
+      SocketData
+   >(httpServer, {
       cors: { origin: process.env.CORS_ORIGIN, credentials: true },
    });
 
@@ -33,10 +43,6 @@ export function setupSocket(httpServer: HttpServer) {
 
    io.on("connection", (socket) => {
       console.log("User connected: ", socket.data.user);
-
-      socket.on("join:clinic", (clinicId: string) => {
-         socket.join(`clinic:${clinicId}`);
-      });
    });
 
    return io;

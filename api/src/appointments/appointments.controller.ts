@@ -8,6 +8,7 @@ const appointmentsController = {
       try {
          const appointmentDto = appointmentType.parse(req.body);
          const appointment = await appointmentsService.create(appointmentDto);
+         req.app.locals.io?.emit("appointment:created", appointment);
          res.status(201).json({ appointment });
       } catch (error: any) {
          if (error instanceof ZodError) {
@@ -23,6 +24,7 @@ const appointmentsController = {
       try {
          const appointmentId = appointmentIdType.parse(req.params.id);
          const appointment = await appointmentsService.delete(appointmentId);
+         req.app.locals.io?.emit("appointment:cancelled", appointment);
          res.status(200).json({ appointment });
       } catch (error: any) {
          if (error instanceof ZodError) {
@@ -42,6 +44,7 @@ const appointmentsController = {
             appointmentId,
             appointmentDto,
          );
+         req.app.locals.io?.emit("appointment:updated", appointment);
          res.status(200).json({ appointment });
       } catch (error: any) {
          if (error instanceof ZodError) {
