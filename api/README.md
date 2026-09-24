@@ -91,11 +91,32 @@ src/
 │   └── repository/professionals.repository.ts Query Drizzle: findAll
 ├── types/
 │   └── express.d.ts        Augmenta `Express.Locals.io` e `Express.Request.user`
+├── shared/
+│   ├── errors/app-error.ts            Classe `AppError` (status + message) com factories `badRequest`/`unauthorized`/`notFound`/`conflict`
+│   ├── middleware/error-handler.ts    Middleware de erro centralizado (ver "Tratamento de erros" abaixo)
+│   └── logger/logger.ts               Logger estruturado (pino)
 └── db/
     ├── client.ts             Cliente Drizzle/pg
     └── schema.ts              Tabelas: `users`, `professionals`, `appointments`
 drizzle/                      Migrations SQL geradas pelo Drizzle Kit
 ```
+
+## Tratamento de erros
+
+Erros são centralizados em `shared/middleware/error-handler.ts`, registrado como último middleware em
+`app.ts`. Controllers/services lançam `AppError` (via `AppError.badRequest`/`notFound`/`conflict`/...)
+ou deixam o erro subir, e o middleware decide a resposta:
+
+- `AppError` → `res.status(err.status).json({ message: err.message })`.
+- `ZodError` (payload inválido) → 400 com as mensagens de validação.
+- Conflito de exclusion constraint do Postgres (código `23P01`) → 409 com mensagem amigável.
+- `SyntaxError` de JSON malformado no body → 400.
+- Qualquer outro erro → 500 com mensagem genérica (não vaza detalhe interno) e log via `logger.error`.
+
+Rotas não mapeadas por nenhum router também passam por esse mesmo caminho: o catch-all em `app.ts`
+(`app.use((req, res, next) => next(AppError.notFound("Rota não encontrada")))`) delega para o
+`errorHandler` em vez de montar a resposta na mão, garantindo que "rota inexistente" tenha o mesmo
+formato, logging e comportamento de qualquer outro 404 da API.
 
 ## Endpoints
 
