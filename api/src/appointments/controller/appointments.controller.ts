@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { ZodError } from "zod";
-import appointmentsService from "./appointments.service";
+import appointmentsService from "../service/appointments.service";
 import {
    appointmentFilterType,
    appointmentIdType,
    appointmentType,
-} from "./dto/appointment.dto";
+} from "../dto/appointment.dto";
 
 const appointmentsController = {
    create: async (req: Request, res: Response) => {
