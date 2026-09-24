@@ -56,8 +56,8 @@ docker-compose.yaml   Orquestração local (api, web, postgres)
 
 ## Status atual
 
-Auth, tempo real e as regras de negócio da agenda (backend) já estão funcionais; falta a tela de
-agenda no frontend. Hoje existe:
+As 5 regras funcionais do enunciado (auth, agenda do dia, criar/mover/cancelar, sem sobreposição,
+tempo real) estão implementadas de ponta a ponta, backend e frontend. Hoje existe:
 
 - [x] Backend Express + TS com auth completa: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout` — bcrypt para hash de senha, JWT emitido em cookie httpOnly, middleware `authToken` protegendo rotas.
 - [x] Banco modelado com Drizzle ORM: tabelas `users`, `professionals` e `appointments` (com migrations geradas) e conectado à API via `db/client.ts`.
@@ -65,20 +65,22 @@ agenda no frontend. Hoje existe:
 - [x] Listagem de profissionais (`GET /professionals`); CRUD de profissionais está fora do escopo, então são populados via seed rodado na migration.
 - [x] Socket.IO configurado, autenticando o handshake pelo mesmo cookie JWT do REST, com broadcast global dos eventos de agendamento (`appointment:created`, `appointment:updated`, `appointment:cancelled`) emitidos a cada mutação real de agendamento.
 - [x] `docker-compose.yaml` com api, web e Postgres (com healthcheck).
-- [x] Frontend React + Vite com roteamento (`PrivateRoute`/`PublicRoute`), `AuthContext`/`SocketContext`, telas de Login e Signup, e uma Home autenticada que já abre a conexão de socket — ainda sem telas do produto (agenda).
+- [x] Frontend React + Vite com roteamento (`PrivateRoute`/`PublicRoute`), `AuthContext`/`SocketContext`, telas de Login e Signup.
+- [x] Tela de **Agenda** (`web/src/pages/Agenda/`): visualização do dia agrupada por hora, filtro por
+  profissional, navegação entre dias, criação/edição via diálogo, cancelamento com confirmação, e
+  atualização em tempo real assinando os eventos de socket que o backend emite — sem precisar de F5
+  em nenhuma das telas abertas.
 
-## O que falta (e o que eu faria a seguir)
+## Próximos passos
 
-O backend da agenda (modelagem, CRUD de agendamentos, não sobreposição e broadcast em tempo real) já
-está pronto. Falta, em ordem de prioridade:
+As 5 regras funcionais do enunciado já estão prontas. Ainda dentro do prazo, o próximo passo é:
 
-1. **Tela de agenda no frontend** — listagem do dia por profissional, ações de criar/mover/cancelar, conectada ao socket já disponível via `SocketContext`, escutando os eventos de agendamento que o backend já emite.
-2. **Testes** — pelo menos da regra de sobreposição, que é a parte mais sensível a bug.
+1. **Testes** — pelo menos da regra de sobreposição, que é a parte mais sensível a bug, e um teste de
+   integração cobrindo o fluxo de tempo real (criar em uma "sessão", ver refletido em outra).
 
-Se o prazo apertar, o corte seria: sem testes automatizados, mas as 5 regras funcionais do enunciado
-(auth, agenda do dia, criar/mover/cancelar, sem sobreposição, tempo real) teriam prioridade absoluta.
-O polimento visual (CSS) não entra nesse corte, já que é gerado com apoio de IA e não consome tempo
-significativo do prazo.
+Se o prazo acabar antes de os testes ficarem prontos, o corte é esse: sem testes automatizados, mas
+com as 5 regras funcionais do enunciado com prioridade absoluta. O polimento visual (CSS) não entra
+nesse corte, já que é gerado com apoio de IA e não consome tempo significativo do prazo.
 
 ## Uso de IA
 

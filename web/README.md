@@ -68,20 +68,43 @@ src/
 │   ├── useAuth.ts            Acesso ao AuthContext
 │   └── useSocket.ts          Acesso ao SocketContext
 ├── services/
-│   ├── api.ts                 Wrapper de fetch (credentials: "include", tratamento de erro via ApiError)
+│   ├── api.ts                 Wrapper de fetch (get/post/put/delete, credentials: "include",
+│   │                            tratamento de erro via ApiError)
 │   └── socket.ts               Instância do socket.io-client (autoConnect: false)
+├── types/
+│   └── appointment.ts         Tipos compartilhados (Appointment, Professional, payloads de socket)
 └── pages/
     ├── Login/                 Tela de login
     ├── Signup/                 Tela de cadastro
-    └── Home/                   Home autenticada (abre a conexão de socket; ainda sem telas da agenda)
+    └── Agenda/                 Tela de agenda (rota "/"), ver seção própria abaixo
 ```
+
+## Tela de Agenda
+
+`pages/Agenda/Agenda.tsx` é a página autenticada em `/` (substituiu a antiga Home). Composição:
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `Agenda.tsx` | Orquestra o dia selecionado, busca profissionais, assina os eventos de socket e monta o layout |
+| `useDayAppointments.ts` | Hook com `useReducer` que carrega os agendamentos do dia (`GET /appointments`, com `AbortController` para cancelar requisições obsoletas) e expõe `upsert`/`remove` para refletir eventos de socket e respostas dos diálogos |
+| `AppointmentFormDialog.tsx` | `<dialog>` de criar/editar (`POST`/`PUT /appointments`) |
+| `CancelConfirmDialog.tsx` | `<dialog>` de confirmação de cancelamento (`DELETE /appointments/:id`) |
+| `DayNav.tsx` | Navegação entre dias |
+| `ProfessionalFilter.tsx` | Filtro por profissional |
+| `HourColumn.tsx` / `AppointmentCard.tsx` | Agrupamento e exibição dos agendamentos por hora |
+| `date-utils.ts` | Conversões de data/hora entre o formato local, os inputs do formulário e o formato UTC usado pela API |
+
+A agenda assina `appointment:created`, `appointment:updated` e `appointment:cancelled` via
+`useSocket` e atualiza a lista local (`upsert`/`remove`) sem recarregar a página; se uma
+edição/cancelamento chega tarde (404, porque outra tela já alterou o registro), o diálogo mostra o
+aviso "Agendamento não encontrado" e remove o item obsoleto da lista.
 
 ## Fluxo de autenticação
 
 1. No mount, `AuthProvider` chama `GET /auth/me`; a sessão é validada pelo cookie httpOnly, então não
    há token para gerenciar manualmente no cliente.
 2. `PrivateRoute`/`PublicRoute` usam `user`/`loading` do `AuthContext` para redirecionar entre
-   `/login`, `/signup` e `/` (Home).
+   `/login`, `/signup` e `/` (Agenda).
 3. Ao autenticar (login/signup), a API seta o cookie de sessão e o `AuthContext` guarda o usuário
    retornado; o `SocketProvider` reage a essa mudança e conecta o socket.
 4. `logout` chama `POST /auth/logout` (limpa o cookie no servidor) e limpa o usuário no contexto, o
@@ -89,8 +112,9 @@ src/
 
 ## Status
 
-Ainda não há telas de agenda (listagem/criação/movimentação/cancelamento de agendamentos) — apenas
-auth e a base de conexão em tempo real. Ver "O que falta" no README raiz do repositório.
+Auth, tempo real e a tela de Agenda (listagem do dia, criar/editar/cancelar, filtro por profissional)
+estão implementados de ponta a ponta. Falta, entre outras coisas, testes automatizados — ver "O que
+falta" no README raiz do repositório.
 
 ## Uso de IA
 

@@ -145,8 +145,8 @@ duas camadas:
 - `appointments.controller.ts` emite `appointment:created`, `appointment:updated` e
   `appointment:cancelled` (payloads tipados em `src/socket.events.ts`) após cada mutação bem-sucedida
   de criar/editar/cancelar um agendamento.
-- O frontend ainda não escuta esses eventos — depende da tela de agenda, ver o "O que falta" no README
-  raiz do repositório.
+- A tela de Agenda no frontend (`web/src/pages/Agenda/Agenda.tsx`) assina esses três eventos via
+  `useSocket` e atualiza a lista local sem precisar recarregar a página — ver `web/README.md`.
 
 ## Banco de dados
 
