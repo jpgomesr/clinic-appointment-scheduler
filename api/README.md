@@ -60,6 +60,10 @@ npm run dev           # http://localhost:3000
 
 ## Estrutura
 
+Os três módulos (`auth`, `appointments`, `professionals`) seguem o mesmo padrão em camadas:
+`routes` recebe a requisição e delega para `controller` (handler HTTP), que delega para `service`
+(regra de negócio), que delega para `repository` (acesso a dados via Drizzle).
+
 ```
 src/
 ├── app.ts                  Configuração do Express (cors, json, cookies, rotas)
@@ -67,21 +71,23 @@ src/
 ├── socket.ts               Setup do Socket.IO: autenticação do handshake via cookie JWT
 ├── socket.events.ts         Tipos dos eventos de socket (ServerToClientEvents, SocketData)
 ├── auth/
-│   ├── auth.routes.ts       Rotas de autenticação
-│   ├── auth.controller.ts   Handlers HTTP (login, signup, me, logout)
-│   ├── auth.service.ts      Regras de negócio: hash de senha, emissão/verificação de JWT
-│   ├── auth.middleware.ts   Middleware `authToken` que protege rotas via cookie
-│   ├── auth.constants.ts    Nome/opções do cookie de sessão
-│   └── dto/                 Schemas Zod de entrada (login, signup)
+│   ├── routes/auth.routes.ts           Rotas de autenticação
+│   ├── controller/auth.controller.ts   Handlers HTTP (login, signup, me, logout)
+│   ├── service/auth.service.ts         Regras de negócio: hash de senha, emissão/verificação de JWT
+│   ├── middleware/auth.middleware.ts   Middleware `authToken` que protege rotas via cookie
+│   ├── constants/auth.constants.ts     Nome/opções do cookie de sessão
+│   └── dto/                            Schemas Zod de entrada (login, signup)
 ├── appointments/
-│   ├── appointments.routes.ts      Rotas de agendamentos
-│   ├── appointments.controller.ts  Handlers HTTP (create, getAll, get, edit, delete) + emissão dos eventos de socket
-│   ├── appointments.service.ts     Regras de negócio: checagem de sobreposição, CRUD, filtros
-│   └── dto/                        Schemas Zod (payload de agendamento, filtro de listagem)
+│   ├── routes/appointments.routes.ts         Rotas de agendamentos
+│   ├── controller/appointments.controller.ts Handlers HTTP (create, getAll, get, edit, delete) + emissão dos eventos de socket
+│   ├── service/appointments.service.ts       Regras de negócio: checagem de sobreposição, CRUD, filtros
+│   ├── repository/appointments.repository.ts Queries Drizzle: findConflict, insert, edit, softDelete, findById, findByProfessionalIdAndDate
+│   └── dto/                                  Schemas Zod (payload de agendamento, filtro de listagem)
 ├── professionals/
-│   ├── professionals.routes.ts     Rota de listagem
-│   ├── professionals.controller.ts Handler HTTP (getAll)
-│   └── professionals.service.ts    Busca todos os profissionais
+│   ├── routes/professionals.routes.ts         Rota de listagem
+│   ├── controller/professionals.controller.ts Handler HTTP (getAll)
+│   ├── service/professionals.service.ts       Busca todos os profissionais
+│   └── repository/professionals.repository.ts Query Drizzle: findAll
 ├── types/
 │   └── express.d.ts        Augmenta `Express.Locals.io` e `Express.Request.user`
 └── db/
@@ -123,10 +129,11 @@ válida).
 Um profissional não pode ter dois agendamentos com horários sobrepostos. A validação acontece em
 duas camadas:
 
-- **Aplicação** (`appointments.service.ts`, em `create` e `edit`): antes de gravar, consulta se já
-  existe um agendamento não cancelado do mesmo profissional cujo intervalo `[startAt, endAt)` cruza
-  com o novo; se sim, retorna 409 (`"Horário já ocupado para esse profissional"`). No `edit`, o
-  próprio agendamento sendo editado é excluído dessa checagem.
+- **Aplicação** (`appointments.service.ts`, em `create` e `edit`): antes de gravar, chama
+  `appointmentsRepository.findConflict` para checar se já existe um agendamento não cancelado do
+  mesmo profissional cujo intervalo `[startAt, endAt)` cruza com o novo; se sim, retorna 409
+  (`"Horário já ocupado para esse profissional"`). No `edit`, o próprio agendamento sendo editado é
+  excluído dessa checagem.
 - **Banco** (constraint `appointments_no_overlap`, migration `drizzle/0002_youthful_expediter.sql`):
   `EXCLUDE USING gist` (extensão `btree_gist`) sobre `professional_id` + `tsrange(start_at, end_at)`,
   escopada a `WHERE deleted_at IS NULL` — é a fonte da verdade contra condições de corrida. Se a

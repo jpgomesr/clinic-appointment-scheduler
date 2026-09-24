@@ -113,8 +113,8 @@ aviso "Agendamento não encontrado" e remove o item obsoleto da lista.
 ## Status
 
 Auth, tempo real e a tela de Agenda (listagem do dia, criar/editar/cancelar, filtro por profissional)
-estão implementados de ponta a ponta. Falta, entre outras coisas, testes automatizados — ver "O que
-falta" no README raiz do repositório.
+estão implementados de ponta a ponta. Falta, entre outras coisas, testes automatizados — ver "Próximos
+passos" no README raiz do repositório.
 
 ## Uso de IA
 

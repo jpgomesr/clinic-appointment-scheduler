@@ -9,7 +9,7 @@ tela, e criar/mover/cancelar um agendamento em uma tela precisa refletir nas out
 
 | Camada | Escolha | Motivo |
 | --- | --- | --- |
-| Backend | Node.js + Express + TypeScript | Ecossistema que domino bem, tipagem ajuda numa regra de negócio (sobreposição de horários) que precisa ser confiável. |
+| Backend | Node.js + Express + TypeScript | Ecossistema que domino bem, tipagem ajuda numa regra de negócio (sobreposição de horários) que precisa ser confiável. Cada módulo (`auth`, `appointments`, `professionals`) é organizado em camadas `routes → controller → service → repository`, isolando o acesso a dados (Drizzle) da regra de negócio. |
 | Autenticação | JWT + bcrypt, token em cookie httpOnly | Sessão que sobrevive a reload sem expor o token a JS no cliente (mitiga XSS); `cookie-parser` no Express e o mesmo cookie é lido no handshake do Socket.IO. |
 | Tempo real | Socket.IO | Abstrai reconexão e fallback de transporte; o handshake é autenticado lendo o cookie JWT (`parseCookie` + `jwt.verify`). Eventos de agendamento são broadcast global (`io.emit`) para todos os clientes autenticados — não há conceito de clínica no modelo de dados hoje, então isolar por room não se aplica. |
 | Banco | PostgreSQL + Drizzle ORM | Dados relacionais (hoje `users`, `professionals` e `appointments`); Drizzle dá migrations tipadas e a regra "sem sobreposição" é reforçada por uma constraint `EXCLUDE` do Postgres. |
