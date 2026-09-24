@@ -91,7 +91,7 @@ src/
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `Agenda.tsx` | Orquestra o dia selecionado, busca profissionais, assina os eventos de socket e monta o layout |
-| `useDayAppointments.ts` | Hook com `useReducer` que carrega os agendamentos do dia (`GET /appointments`, com `AbortController` para cancelar requisições obsoletas) e expõe `upsert`/`remove` para refletir eventos de socket e respostas dos diálogos |
+| `useDayAppointments.ts` | Hook com `useReducer` que carrega os agendamentos do dia (`GET /appointments`, com `AbortController` para cancelar requisições obsoletas) e expõe `upsert`/`remove` para refletir eventos de socket e respostas dos diálogos. Enquanto o `GET` inicial está em andamento, `upsert`/`remove` disparados por eventos de socket são aplicados imediatamente e também enfileirados; ao chegar a resposta do `GET`, a fila é reaplicada por cima do snapshot recém-carregado, evitando que um evento de socket que chegou durante o carregamento seja perdido quando o `GET` (mais lento) resolver depois |
 | `AppointmentFormDialog.tsx` | `<dialog>` de criar/editar (`POST`/`PUT /appointments`) |
 | `CancelConfirmDialog.tsx` | `<dialog>` de confirmação de cancelamento (`DELETE /appointments/:id`) |
 | `DayNav.tsx` | Navegação entre dias |
