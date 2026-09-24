@@ -11,13 +11,17 @@ import {
 } from "./socket.events";
 
 export function setupSocket(httpServer: HttpServer) {
+   const corsOrigins = process.env.CORS_ORIGIN?.split(",").map((origin) =>
+      origin.trim(),
+   );
+
    const io = new Server<
       ClientToServerEvents,
       ServerToClientEvents,
       Record<string, never>,
       SocketData
    >(httpServer, {
-      cors: { origin: process.env.CORS_ORIGIN, credentials: true },
+      cors: { origin: corsOrigins, credentials: true },
    });
 
    io.use((socket, next) => {
