@@ -56,6 +56,7 @@ npm run dev           # http://localhost:3000
 | `JWT_SECRET` | Segredo usado para assinar/verificar o JWT (REST e handshake do Socket.IO) |
 | `DATABASE_URL` | Connection string do Postgres, usada pelo Drizzle |
 | `CORS_ORIGIN` | Lista de origens permitidas separadas por vírgula (ex.: `http://localhost:5173,http://localhost:8080`) |
+| `NODE_ENV` | Quando `production`, marca o cookie de sessão como `secure` |
 
 ## Estrutura
 
@@ -72,9 +73,20 @@ src/
 │   ├── auth.middleware.ts   Middleware `authToken` que protege rotas via cookie
 │   ├── auth.constants.ts    Nome/opções do cookie de sessão
 │   └── dto/                 Schemas Zod de entrada (login, signup)
+├── appointments/
+│   ├── appointments.routes.ts      Rotas de agendamentos
+│   ├── appointments.controller.ts  Handlers HTTP (create, getAll, get, edit, delete) + emissão dos eventos de socket
+│   ├── appointments.service.ts     Regras de negócio: checagem de sobreposição, CRUD, filtros
+│   └── dto/                        Schemas Zod (payload de agendamento, filtro de listagem)
+├── professionals/
+│   ├── professionals.routes.ts     Rota de listagem
+│   ├── professionals.controller.ts Handler HTTP (getAll)
+│   └── professionals.service.ts    Busca todos os profissionais
+├── types/
+│   └── express.d.ts        Augmenta `Express.Locals.io` e `Express.Request.user`
 └── db/
     ├── client.ts             Cliente Drizzle/pg
-    └── schema.ts              Tabelas (hoje: `users`)
+    └── schema.ts              Tabelas: `users`, `professionals`, `appointments`
 drizzle/                      Migrations SQL geradas pelo Drizzle Kit
 ```
 
@@ -91,6 +103,38 @@ lê nem manipula o token diretamente.
 | `GET` | `/auth/me` | Retorna o usuário do cookie de sessão (rota protegida por `authToken`) |
 | `POST` | `/auth/logout` | Limpa o cookie de sessão |
 
+Rotas de `/appointments` e `/professionals` ficam atrás do middleware `authToken` (exigem sessão
+válida).
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `POST` | `/appointments` | Cria um agendamento (`startAt`, `endAt`, `professionalId`); valida `startAt < endAt` e checa sobreposição |
+| `GET` | `/appointments` | Lista agendamentos não cancelados, com filtros opcionais `professionalId` e `date` (`YYYY-MM-DD`) |
+| `GET` | `/appointments/:id` | Retorna um agendamento por id (404 se não existir ou estiver cancelado) |
+| `PUT` | `/appointments/:id` | Edita/move um agendamento (mesma validação de sobreposição, excluindo o próprio registro) |
+| `DELETE` | `/appointments/:id` | Cancela um agendamento (soft delete via `deletedAt`) |
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/professionals` | Lista todos os profissionais (sem CRUD; populados via seed na migration `drizzle/0001_parallel_bucky.sql`) |
+
+## Regra de não sobreposição
+
+Um profissional não pode ter dois agendamentos com horários sobrepostos. A validação acontece em
+duas camadas:
+
+- **Aplicação** (`appointments.service.ts`, em `create` e `edit`): antes de gravar, consulta se já
+  existe um agendamento não cancelado do mesmo profissional cujo intervalo `[startAt, endAt)` cruza
+  com o novo; se sim, retorna 409 (`"Horário já ocupado para esse profissional"`). No `edit`, o
+  próprio agendamento sendo editado é excluído dessa checagem.
+- **Banco** (constraint `appointments_no_overlap`, migration `drizzle/0002_youthful_expediter.sql`):
+  `EXCLUDE USING gist` (extensão `btree_gist`) sobre `professional_id` + `tsrange(start_at, end_at)`,
+  escopada a `WHERE deleted_at IS NULL` — é a fonte da verdade contra condições de corrida. Se a
+  constraint rejeitar a gravação (código Postgres `23P01`), o service converte isso na mesma
+  resposta 409 usada na checagem de aplicação.
+
+`appointments` e `users` usam soft delete (`deletedAt`); `professionals` não tem essa coluna.
+
 ## Tempo real (Socket.IO)
 
 - O handshake é autenticado lendo o mesmo cookie de sessão do REST e validando com `jwt.verify`
@@ -106,7 +150,9 @@ lê nem manipula o token diretamente.
 
 ## Banco de dados
 
-O schema (Drizzle) fica em `src/db/schema.ts`. Hoje há apenas a tabela `users`. Para alterar o schema:
+O schema (Drizzle) fica em `src/db/schema.ts`. Hoje há três tabelas: `users`, `professionals` e
+`appointments` (com FK para `professionals` e a constraint de não sobreposição descrita acima). Para
+alterar o schema:
 
 ```bash
 npm run db:generate   # gera a migration em drizzle/
