@@ -23,7 +23,8 @@ cp api/.env.example api/.env
 docker compose up --build
 ```
 
-A API sobe em http://localhost:3000.
+A API sobe em http://localhost:3000. As migrations do Drizzle são aplicadas automaticamente pelo
+container antes do servidor iniciar.
 
 ### Sem Docker
 

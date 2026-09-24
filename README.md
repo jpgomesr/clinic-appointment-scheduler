@@ -30,6 +30,9 @@ docker compose up --build
 - API: http://localhost:3000
 - Postgres: localhost:5432 (usuário/senha/banco definidos em `docker-compose.yaml`)
 
+O container `api` aplica as migrations do Drizzle automaticamente antes de subir o servidor — não é
+preciso rodar nada manualmente.
+
 ### Opção 2 — sem Docker (dev)
 
 Requer um Postgres rodando localmente (ou `docker run postgres:16-alpine`) com as credenciais de `api/.env`.
