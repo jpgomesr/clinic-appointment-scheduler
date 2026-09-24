@@ -13,7 +13,8 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/drizzle ./drizzle
 
 # Expondo porta da api
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "node dist/db/migrate.js && exec node dist/index.js"]
