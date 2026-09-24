@@ -2,15 +2,14 @@ import { db } from "../../db/client";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { users } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { LoginDto } from "../dto/login.dto";
 import { SignupDto } from "../dto/signup.dto";
+import authRepository from "../repository/auth.repository";
 
 const authService = {
    login: async (userLoginDto: LoginDto) => {
-      const user = await db.query.users.findFirst({
-         where: eq(users.email, userLoginDto.email),
-      });
+      const user = await authRepository.exist(userLoginDto);
 
       const invalid = Object.assign(new Error("Credenciais inválidas"), {
          status: 401,
@@ -33,9 +32,7 @@ const authService = {
    },
 
    signup: async (userSignupDto: SignupDto) => {
-      const existingUser = await db.query.users.findFirst({
-         where: eq(users.email, userSignupDto.email),
-      });
+      const existingUser = await authRepository.exist(userSignupDto);
       if (existingUser) {
          throw Object.assign(new Error("Email já cadastrado"), { status: 409 });
       }
@@ -46,18 +43,7 @@ const authService = {
 
       const passwordHash = await bcrypt.hash(userSignupDto.password, 10);
 
-      const [user] = await db
-         .insert(users)
-         .values({
-            name: userSignupDto.name,
-            email: userSignupDto.email,
-            password: passwordHash,
-         })
-         .returning({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-         });
+      const [user] = await authRepository.create(userSignupDto, passwordHash);
 
       if (!user) {
          throw Object.assign(new Error("Falha ao criar usuário"), {
@@ -80,14 +66,7 @@ const authService = {
    me: async (jwtRaw: string) => {
       const payload = jwt.verify(jwtRaw, process.env.JWT_SECRET!) as JwtPayload;
       const userId = payload.id as string;
-      const user = await db.query.users.findFirst({
-         where: eq(users.id, userId),
-         columns: {
-            id: true,
-            name: true,
-            email: true,
-         },
-      });
+      const user = await authRepository.getById(userId);
       if (!user) {
          throw Object.assign(new Error("Usuário não encontrado"), {
             status: 404,
