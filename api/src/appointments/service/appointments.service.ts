@@ -1,38 +1,26 @@
 import { AppointmentDto, AppointmentFilterDto } from "../dto/appointment.dto";
 import appointmentsRepository from "../repository/appointments.repository";
+import { AppError } from "../../shared/errors/app-error";
 
 const appointmentsService = {
    create: async (appointmentDto: AppointmentDto) => {
       const exist = await appointmentsRepository.findConflict(appointmentDto);
       if (exist)
-         throw Object.assign(
-            new Error("Horário já ocupado para esse profissional"),
-            {
-               status: 409,
-            },
-         );
+         throw AppError.conflict("Horário já ocupado para esse profissional");
 
       let appointment;
       try {
          [appointment] = await appointmentsRepository.insert(appointmentDto);
       } catch (error: any) {
          if (error.cause?.code === "23P01") {
-            throw Object.assign(
-               new Error("Horário já ocupado para esse profissional"),
-               {
-                  status: 409,
-               },
+            throw AppError.conflict(
+               "Horário já ocupado para esse profissional",
             );
          }
-         throw Object.assign(new Error("Falha ao agendar horário"), {
-            status: 500,
-         });
+         throw new Error("Falha ao agendar horário");
       }
 
-      if (!appointment)
-         throw Object.assign(new Error("Falha ao agendar horário"), {
-            status: 500,
-         });
+      if (!appointment) throw new Error("Falha ao agendar horário");
 
       return appointment;
    },
@@ -41,10 +29,7 @@ const appointmentsService = {
       const [appointment] =
          await appointmentsRepository.softDelete(appointmentId);
 
-      if (!appointment)
-         throw Object.assign(new Error("Agendamento não encontrado"), {
-            status: 404,
-         });
+      if (!appointment) throw AppError.notFound("Agendamento não encontrado");
 
       return appointment;
    },
@@ -55,12 +40,7 @@ const appointmentsService = {
          appointmentId,
       );
       if (exist)
-         throw Object.assign(
-            new Error("Horário já ocupado para esse profissional"),
-            {
-               status: 409,
-            },
-         );
+         throw AppError.conflict("Horário já ocupado para esse profissional");
 
       let appointment;
       try {
@@ -70,32 +50,21 @@ const appointmentsService = {
          );
       } catch (error: any) {
          if (error.cause?.code === "23P01") {
-            throw Object.assign(
-               new Error("Horário já ocupado para esse profissional"),
-               {
-                  status: 409,
-               },
+            throw AppError.conflict(
+               "Horário já ocupado para esse profissional",
             );
          }
-         throw Object.assign(new Error("Falha ao editar agendamento"), {
-            status: 500,
-         });
+         throw new Error("Falha ao editar agendamento");
       }
 
-      if (!appointment)
-         throw Object.assign(new Error("Agendamento não encontrado"), {
-            status: 404,
-         });
+      if (!appointment) throw AppError.notFound("Agendamento não encontrado");
 
       return appointment;
    },
 
    get: async (appointmentId: string) => {
       const appointment = await appointmentsRepository.findById(appointmentId);
-      if (!appointment)
-         throw Object.assign(new Error("Agendamento não encontrado"), {
-            status: 404,
-         });
+      if (!appointment) throw AppError.notFound("Agendamento não encontrado");
 
       return appointment;
    },
