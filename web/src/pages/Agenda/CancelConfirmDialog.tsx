@@ -23,7 +23,9 @@ export function CancelConfirmDialog({
    const [submitting, setSubmitting] = useState(false);
 
    useEffect(() => {
-      dialogRef.current?.showModal();
+      if (dialogRef.current && !dialogRef.current.open) {
+         dialogRef.current.showModal();
+      }
    }, []);
 
    useEffect(() => {
