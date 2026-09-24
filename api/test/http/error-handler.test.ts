@@ -1,10 +1,12 @@
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import { test, describe, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
 import request from "supertest";
 import app from "../../src/app";
 import professionalsService from "../../src/professionals/service/professionals.service";
+import appointmentsRepository from "../../src/appointments/repository/appointments.repository";
 import { TOKEN_COOKIE } from "../../src/auth/constants/auth.constants";
 
 function authCookie() {
@@ -37,6 +39,36 @@ describe("JSON malformado", () => {
 
       assert.equal(response.status, 400);
       assert.ok(response.body.message);
+   });
+});
+
+describe("conflito de exclusion constraint no Postgres (23P01)", () => {
+   test("retorna 409 quando o Postgres rejeita por overlap", async () => {
+      mock.method(
+         appointmentsRepository,
+         "findConflict",
+         async () => undefined,
+      );
+      mock.method(appointmentsRepository, "insert", async () => {
+         throw Object.assign(new Error("exclusion constraint violation"), {
+            cause: { code: "23P01" },
+         });
+      });
+
+      const response = await request(app)
+         .post("/appointments")
+         .set("Cookie", authCookie())
+         .send({
+            startAt: "2026-01-05T09:00:00.000Z",
+            endAt: "2026-01-05T10:00:00.000Z",
+            professionalId: randomUUID(),
+         });
+
+      assert.equal(response.status, 409);
+      assert.equal(
+         response.body.message,
+         "Horário já ocupado para esse profissional",
+      );
    });
 });
 

@@ -29,27 +29,6 @@ describe("appointmentsService.create", () => {
       );
    });
 
-   test("lança 409 quando o Postgres rejeita por overlap (23P01)", async () => {
-      mock.method(
-         appointmentsRepository,
-         "findConflict",
-         async () => undefined,
-      );
-      mock.method(appointmentsRepository, "insert", async () => {
-         throw Object.assign(new Error("exclusion constraint violation"), {
-            cause: { code: "23P01" },
-         });
-      });
-
-      await assert.rejects(
-         () => appointmentsService.create(appointmentDto),
-         (error: any) => {
-            assert.equal(error.status, 409);
-            return true;
-         },
-      );
-   });
-
    test("cria o agendamento quando não há conflito", async () => {
       const created = { id: "new-id", ...appointmentDto };
       mock.method(

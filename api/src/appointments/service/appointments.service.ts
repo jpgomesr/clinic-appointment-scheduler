@@ -8,21 +8,10 @@ const appointmentsService = {
       if (exist)
          throw AppError.conflict("Horário já ocupado para esse profissional");
 
-      let appointment;
-      try {
-         [appointment] = await appointmentsRepository.insert(appointmentDto);
-      } catch (error: any) {
-         if (error.cause?.code === "23P01") {
-            throw AppError.conflict(
-               "Horário já ocupado para esse profissional",
-            );
-         }
-         throw new Error("Falha ao agendar horário");
-      }
+      // insert sem WHERE sempre retorna 1 linha, a menos que lance (ex.: 23P01)
+      const [appointment] = await appointmentsRepository.insert(appointmentDto);
 
-      if (!appointment) throw new Error("Falha ao agendar horário");
-
-      return appointment;
+      return appointment!;
    },
 
    delete: async (appointmentId: string) => {
@@ -42,20 +31,10 @@ const appointmentsService = {
       if (exist)
          throw AppError.conflict("Horário já ocupado para esse profissional");
 
-      let appointment;
-      try {
-         [appointment] = await appointmentsRepository.edit(
-            appointmentId,
-            appointmentDto,
-         );
-      } catch (error: any) {
-         if (error.cause?.code === "23P01") {
-            throw AppError.conflict(
-               "Horário já ocupado para esse profissional",
-            );
-         }
-         throw new Error("Falha ao editar agendamento");
-      }
+      const [appointment] = await appointmentsRepository.edit(
+         appointmentId,
+         appointmentDto,
+      );
 
       if (!appointment) throw AppError.notFound("Agendamento não encontrado");
 

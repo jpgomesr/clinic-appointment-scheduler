@@ -19,6 +19,12 @@ export function errorHandler(
       return res.status(err.status).json({ message: err.message });
    }
 
+   if (err instanceof Error && (err.cause as any)?.code === "23P01") {
+      return res.status(409).json({
+         message: "Horário já ocupado para esse profissional",
+      });
+   }
+
    if (
       err instanceof SyntaxError &&
       "status" in err &&
