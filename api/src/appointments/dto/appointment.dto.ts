@@ -7,7 +7,7 @@ export const appointmentType = z
       professionalId: z.uuid().nonempty(),
    })
    .refine((data) => data.startAt < data.endAt, {
-      message: "A data e hora de início deve ser no futuro",
+      message: "A data e hora de início deve ser anterior ao término",
       path: ["startAt"], // aponta o erro pro campo certo
    });
 
