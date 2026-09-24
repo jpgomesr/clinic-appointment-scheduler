@@ -2,10 +2,10 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import authRouter from "./auth/auth.routes";
-import appointmentsRouter from "./appointments/appointments.routes";
-import professionalsRouter from "./professionals/professionals.routes";
-import { authToken } from "./auth/auth.middleware";
+import authRouter from "./auth/routes/auth.routes";
+import appointmentsRouter from "./appointments/routes/appointments.routes";
+import professionalsRouter from "./professionals/routes/professionals.routes";
+import { authToken } from "./auth/middleware/auth.middleware";
 
 const corsOrigins = process.env.CORS_ORIGIN?.split(",").map((origin) =>
    origin.trim(),

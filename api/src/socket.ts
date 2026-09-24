@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { parseCookie } from "cookie";
-import { TOKEN_COOKIE } from "./auth/auth.constants";
+import { TOKEN_COOKIE } from "./auth/constants/auth.constants";
 import {
    ClientToServerEvents,
    ServerToClientEvents,
