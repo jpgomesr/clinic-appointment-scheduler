@@ -1,7 +1,7 @@
 import "dotenv/config";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { TOKEN_COOKIE } from "./auth.constants";
+import { TOKEN_COOKIE } from "../constants/auth.constants";
 
 export function authToken(req: Request, res: Response, next: NextFunction) {
    const token = req.cookies?.[TOKEN_COOKIE];

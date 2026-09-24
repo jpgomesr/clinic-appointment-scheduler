@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import authService from "./auth.service";
+import authService from "../service/auth.service";
 import {
    TOKEN_COOKIE,
    TOKEN_COOKIE_OPTIONS,
    TOKEN_MAX_AGE_MS,
-} from "./auth.constants";
-import { loginType } from "./dto/login.dto";
-import { signupType } from "./dto/signup.dto";
+} from "../constants/auth.constants";
+import { loginType } from "../dto/login.dto";
+import { signupType } from "../dto/signup.dto";
 import { ZodError } from "zod";
 
 const authController = {

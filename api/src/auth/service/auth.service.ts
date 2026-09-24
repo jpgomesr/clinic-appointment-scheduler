@@ -1,10 +1,10 @@
-import { db } from "../db/client";
+import { db } from "../../db/client";
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { users } from "../db/schema";
+import { users } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { LoginDto } from "./dto/login.dto";
-import { SignupDto } from "./dto/signup.dto";
+import { LoginDto } from "../dto/login.dto";
+import { SignupDto } from "../dto/signup.dto";
 
 const authService = {
    login: async (userLoginDto: LoginDto) => {
