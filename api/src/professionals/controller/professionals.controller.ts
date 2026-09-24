@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import professionalsService from "./professionals.service";
+import professionalsService from "../service/professionals.service";
 
 const professionalsController = {
    getAll: async (req: Request, res: Response) => {
