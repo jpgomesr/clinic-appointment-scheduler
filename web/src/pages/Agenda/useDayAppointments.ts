@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { ApiError, api } from "../../services/api";
 import type { Appointment } from "../../types/appointment";
 import { isWithinLocalDay, utcDateStringsForLocalDay } from "./date-utils";
@@ -45,8 +45,13 @@ export function useDayAppointments(day: Date) {
       error: null,
    });
 
+   const loadingRef = useRef(false);
+   const pendingRef = useRef<Action[]>([]);
+
    useEffect(() => {
       const controller = new AbortController();
+      loadingRef.current = true;
+      pendingRef.current = [];
       dispatch({ type: "loading" });
 
       async function load() {
@@ -63,12 +68,16 @@ export function useDayAppointments(day: Date) {
                .flatMap((response) => response.appointments)
                .filter((appointment) => isWithinLocalDay(appointment.startAt, day));
             dispatch({ type: "loaded", items });
+            for (const action of pendingRef.current) dispatch(action);
          } catch (err) {
             if (err instanceof DOMException && err.name === "AbortError") return;
             dispatch({
                type: "error",
                message: err instanceof ApiError ? err.message : "Erro ao carregar a agenda",
             });
+         } finally {
+            loadingRef.current = false;
+            pendingRef.current = [];
          }
       }
 
@@ -76,8 +85,16 @@ export function useDayAppointments(day: Date) {
       return () => controller.abort();
    }, [day]);
 
-   const upsert = useCallback((item: Appointment) => dispatch({ type: "upsert", item }), []);
-   const remove = useCallback((id: string) => dispatch({ type: "remove", id }), []);
+   const upsert = useCallback((item: Appointment) => {
+      const action: Action = { type: "upsert", item };
+      if (loadingRef.current) pendingRef.current.push(action);
+      dispatch(action);
+   }, []);
+   const remove = useCallback((id: string) => {
+      const action: Action = { type: "remove", id };
+      if (loadingRef.current) pendingRef.current.push(action);
+      dispatch(action);
+   }, []);
 
    const appointments = Object.values(state.byId).sort(
       (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
