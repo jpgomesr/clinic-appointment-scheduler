@@ -1,0 +1,275 @@
+.agenda {
+   text-align: left;
+   max-width: 1200px;
+   width: 100%;
+   margin: 0 auto;
+   padding: 24px 16px 64px;
+   box-sizing: border-box;
+}
+
+.agenda-header {
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   margin-bottom: 24px;
+}
+
+.agenda-user {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   font-size: 14px;
+   color: var(--text);
+}
+
+.agenda-user button {
+   font: inherit;
+   padding: 6px 12px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+   cursor: pointer;
+}
+
+.agenda-controls {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+}
+
+.day-nav {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.day-nav button {
+   font: inherit;
+   padding: 6px 12px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+   cursor: pointer;
+}
+
+.day-nav-label {
+   font-size: 16px;
+   margin: 0 0 0 8px;
+   text-transform: capitalize;
+}
+
+.professional-filter {
+   font: inherit;
+   padding: 8px 12px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+}
+
+.agenda-create-button {
+   font: inherit;
+   font-size: 14px;
+   padding: 8px 14px;
+   border: none;
+   border-radius: 6px;
+   background: var(--accent);
+   color: #fff;
+   cursor: pointer;
+}
+
+.agenda-empty {
+   color: var(--text);
+   font-size: 14px;
+}
+
+.agenda-notice {
+   background: var(--accent-bg);
+   border: 1px solid var(--accent-border);
+   border-radius: 6px;
+   padding: 8px 12px;
+   font-size: 14px;
+   margin-bottom: 16px;
+}
+
+.agenda-loading {
+   color: var(--text);
+   font-size: 14px;
+}
+
+.agenda-board {
+   display: flex;
+   align-items: flex-start;
+   gap: 12px;
+   overflow-x: auto;
+   padding-bottom: 12px;
+}
+
+.hour-column {
+   flex: 0 0 220px;
+   min-width: 220px;
+   border: 1px solid var(--border);
+   border-radius: 8px;
+   padding: 12px;
+   background: var(--bg);
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+}
+
+.hour-column-header h3 {
+   margin: 0;
+   font-size: 16px;
+   color: var(--text-h);
+}
+
+.appointment-list {
+   list-style: none;
+   margin: 0;
+   padding: 0;
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+}
+
+.appointment-card {
+   border: 1px solid var(--border);
+   border-left: 4px solid var(--card-accent, var(--accent));
+   border-radius: 6px;
+   padding: 8px 10px;
+   box-shadow: var(--shadow);
+   background: var(--bg);
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+}
+
+.appointment-card-info {
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.appointment-card-professional {
+   font-size: 14px;
+   font-weight: 600;
+   color: var(--text-h);
+}
+
+.appointment-card-time {
+   font-size: 13px;
+   color: var(--text);
+}
+
+.appointment-card-actions {
+   display: flex;
+   gap: 8px;
+}
+
+.appointment-card-edit {
+   font: inherit;
+   font-size: 13px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+   cursor: pointer;
+   padding: 4px 10px;
+}
+
+.appointment-card-cancel {
+   font: inherit;
+   font-size: 13px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: #d33;
+   cursor: pointer;
+   padding: 4px 10px;
+}
+
+.appointment-dialog {
+   border: 1px solid var(--border);
+   border-radius: 8px;
+   box-shadow: var(--shadow);
+   padding: 24px;
+   max-width: 360px;
+   width: 90vw;
+   color: var(--text);
+   background: var(--bg);
+}
+
+.appointment-dialog::backdrop {
+   background: rgba(0, 0, 0, 0.4);
+}
+
+.appointment-dialog h2 {
+   margin: 0 0 16px;
+   font-size: 20px;
+   color: var(--text-h);
+}
+
+.appointment-dialog form {
+   display: flex;
+   flex-direction: column;
+   gap: 4px;
+}
+
+.appointment-dialog label {
+   font-size: 14px;
+   color: var(--text-h);
+   margin-top: 12px;
+}
+
+.appointment-dialog select,
+.appointment-dialog input {
+   font: inherit;
+   padding: 8px 12px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+}
+
+.appointment-dialog-times {
+   display: flex;
+   gap: 12px;
+}
+
+.appointment-dialog-times > div {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+}
+
+.appointment-dialog-actions {
+   display: flex;
+   justify-content: flex-end;
+   gap: 8px;
+   margin-top: 20px;
+}
+
+.appointment-dialog-actions button {
+   font: inherit;
+   padding: 8px 16px;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: var(--bg);
+   color: var(--text-h);
+   cursor: pointer;
+}
+
+.appointment-dialog-actions button[type="submit"] {
+   border: none;
+   background: var(--accent);
+   color: #fff;
+}
+
+.appointment-dialog-actions button:disabled {
+   opacity: 0.6;
+   cursor: default;
+}
