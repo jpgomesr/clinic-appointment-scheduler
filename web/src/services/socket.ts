@@ -1,6 +1,5 @@
 import { io, Socket } from "socket.io-client";
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+import { API_URL } from "../config/env";
 
 export const socket: Socket = io(API_URL, {
    withCredentials: true,
