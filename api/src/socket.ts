@@ -9,6 +9,7 @@ import {
    ServerToClientEvents,
    SocketData,
 } from "./socket.events";
+import { logger } from "./shared/logger/logger";
 
 export function setupSocket(httpServer: HttpServer) {
    const corsOrigins = process.env.CORS_ORIGIN?.split(",").map((origin) =>
@@ -46,7 +47,7 @@ export function setupSocket(httpServer: HttpServer) {
    });
 
    io.on("connection", (socket) => {
-      console.log("User connected: ", socket.data.user);
+      logger.info({ user: socket.data.user }, "User connected");
    });
 
    return io;

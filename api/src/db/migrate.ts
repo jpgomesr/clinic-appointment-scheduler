@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { logger } from "../shared/logger/logger";
 
 async function main() {
    const pool = new Pool({
@@ -14,6 +15,6 @@ async function main() {
 }
 
 main().catch((err) => {
-   console.error(err);
+   logger.error(err);
    process.exit(1);
 });
