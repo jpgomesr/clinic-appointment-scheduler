@@ -67,6 +67,11 @@ src/
 ├── hooks/
 │   ├── useAuth.ts            Acesso ao AuthContext
 │   └── useSocket.ts          Acesso ao SocketContext
+├── config/
+│   └── env.ts                 Fonte única de `API_URL` (lê `VITE_API_URL`, com fallback para
+│                                 `http://localhost:3000`), usada por `services/api.ts` e
+│                                 `services/socket.ts` para garantir que REST e Socket.IO sempre
+│                                 apontem para o mesmo host
 ├── services/
 │   ├── api.ts                 Wrapper de fetch (get/post/put/delete, credentials: "include",
 │   │                            tratamento de erro via ApiError)
