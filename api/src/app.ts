@@ -7,6 +7,7 @@ import appointmentsRouter from "./appointments/routes/appointments.routes";
 import professionalsRouter from "./professionals/routes/professionals.routes";
 import { authToken } from "./auth/middleware/auth.middleware";
 import { errorHandler } from "./shared/middleware/error-handler";
+import { AppError } from "./shared/errors/app-error";
 import { pinoHttp } from "pino-http";
 import { logger } from "./shared/logger/logger";
 
@@ -23,7 +24,7 @@ app.use("/auth", authRouter);
 app.use("/appointments", authToken, appointmentsRouter);
 app.use("/professionals", authToken, professionalsRouter);
 
-app.use((req, res) => res.status(404).json({ message: "Rota não encontrada" }));
+app.use((req, res, next) => next(AppError.notFound("Rota não encontrada")));
 app.use(errorHandler);
 
 export default app;
