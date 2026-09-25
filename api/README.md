@@ -100,7 +100,7 @@ src/
 ├── shared/
 │   ├── errors/app-error.ts            Classe `AppError` (status + message) com factories `badRequest`/`unauthorized`/`notFound`/`conflict`
 │   ├── middleware/error-handler.ts    Middleware de erro centralizado (ver "Tratamento de erros" abaixo)
-│   └── logger/logger.ts               Logger estruturado (pino)
+│   └── logger/logger.ts               Logger estruturado (pino), com o header `authorization` redigido nos logs de request
 └── db/
     ├── client.ts             Cliente Drizzle/pg
     └── schema.ts              Tabelas: `users`, `professionals`, `appointments`
