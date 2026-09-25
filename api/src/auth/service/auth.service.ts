@@ -4,6 +4,7 @@ import { LoginDto } from "../dto/login.dto";
 import { SignupDto } from "../dto/signup.dto";
 import authRepository from "../repository/auth.repository";
 import { AppError } from "../../shared/errors/app-error";
+import { env } from "../../config/env";
 
 const authService = {
    login: async (userLoginDto: LoginDto) => {
@@ -17,7 +18,7 @@ const authService = {
 
       const token = jwt.sign(
          { id: user.id, email: user.email },
-         process.env.JWT_SECRET!,
+         env.JWT_SECRET,
          { expiresIn: "8h" },
       );
 
@@ -47,7 +48,7 @@ const authService = {
 
       const token = jwt.sign(
          { id: user.id, email: user.email },
-         process.env.JWT_SECRET!,
+         env.JWT_SECRET,
          { expiresIn: "8h" },
       );
 
@@ -58,7 +59,7 @@ const authService = {
    },
 
    me: async (jwtRaw: string) => {
-      const payload = jwt.verify(jwtRaw, process.env.JWT_SECRET!) as JwtPayload;
+      const payload = jwt.verify(jwtRaw, env.JWT_SECRET) as JwtPayload;
       const userId = payload.id as string;
       const user = await authRepository.getById(userId);
       if (!user) {

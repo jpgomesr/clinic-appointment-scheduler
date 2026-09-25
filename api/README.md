@@ -61,6 +61,10 @@ npm run dev           # http://localhost:3000
 | `CORS_ORIGIN` | Lista de origens permitidas separadas por vírgula (ex.: `http://localhost:5173,http://localhost:8080`) |
 | `NODE_ENV` | Ambiente de execução (`production`/`development`) |
 
+`JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGIN` são obrigatórias e validadas com Zod na inicialização
+(`src/config/env.ts`): se alguma faltar, a API não sobe e o erro diz quais variáveis estão faltando.
+`CORS_ORIGIN` é obrigatória porque, sem ela, o `cors()` liberaria qualquer origem.
+
 ## Estrutura
 
 Os três módulos (`auth`, `appointments`, `professionals`) seguem o mesmo padrão em camadas:
@@ -70,6 +74,7 @@ Os três módulos (`auth`, `appointments`, `professionals`) seguem o mesmo padr�
 ```
 src/
 ├── app.ts                  Configuração do Express (cors, json, rotas)
+├── config/env.ts           Validação (Zod) e acesso tipado às variáveis de ambiente
 ├── index.ts                Bootstrap: cria o HTTP server, sobe o Socket.IO e escuta a porta
 ├── socket.ts               Setup do Socket.IO: autenticação do handshake via token JWT
 ├── socket.events.ts         Tipos dos eventos de socket (ServerToClientEvents, SocketData)

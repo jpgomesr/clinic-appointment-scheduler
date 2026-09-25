@@ -1,5 +1,5 @@
-import "dotenv/config";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { env } from "../../config/env";
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../../shared/errors/app-error";
 import authRepository from "../repository/auth.repository";
@@ -20,7 +20,7 @@ export async function authToken(
    if (!token) return next(AppError.unauthorized("Token não fornecido"));
 
    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+      const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
       const user = await authRepository.getById(payload.id as string);
       if (!user)
          return next(AppError.unauthorized("Token inválido ou expirado"));

@@ -1,5 +1,5 @@
-import "dotenv/config";
 import { Server } from "socket.io";
+import { env } from "./config/env";
 import { Server as HttpServer } from "http";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import {
@@ -10,17 +10,13 @@ import {
 import { logger } from "./shared/logger/logger";
 
 export function setupSocket(httpServer: HttpServer) {
-   const corsOrigins = process.env.CORS_ORIGIN?.split(",").map((origin) =>
-      origin.trim(),
-   );
-
    const io = new Server<
       ClientToServerEvents,
       ServerToClientEvents,
       Record<string, never>,
       SocketData
    >(httpServer, {
-      cors: { origin: corsOrigins },
+      cors: { origin: env.CORS_ORIGIN },
    });
 
    io.use((socket, next) => {
@@ -29,7 +25,7 @@ export function setupSocket(httpServer: HttpServer) {
 
       jwt.verify(
          token,
-         process.env.JWT_SECRET!,
+         env.JWT_SECRET,
          (
             err: VerifyErrors | null,
             decoded: JwtPayload | string | undefined,
