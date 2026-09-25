@@ -2,7 +2,7 @@ export const TOKEN_COOKIE = "token";
 
 export const TOKEN_COOKIE_OPTIONS = {
    httpOnly: true,
-   sameSite: "lax" as const,
+   sameSite: process.env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const),
    secure: process.env.NODE_ENV === "production",
    path: "/",
 };
