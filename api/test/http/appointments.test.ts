@@ -6,6 +6,7 @@ import request from "supertest";
 import app from "../../src/app";
 import appointmentsRepository from "../../src/appointments/repository/appointments.repository";
 import { TOKEN_COOKIE } from "../../src/auth/constants/auth.constants";
+import authRepository from "../../src/auth/repository/auth.repository";
 
 const professionalId = "887e2f72-cd78-410f-8ada-442e50fb0d42";
 const appointmentBody = {
@@ -24,6 +25,11 @@ function authCookie() {
 
 beforeEach(() => {
    mock.restoreAll();
+   mock.method(authRepository, "getById", async () => ({
+      id: "user-id",
+      name: "Teste",
+      email: "teste@teste.com",
+   }));
 });
 
 describe("POST /appointments", () => {

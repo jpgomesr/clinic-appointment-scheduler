@@ -8,6 +8,7 @@ import app from "../../src/app";
 import professionalsService from "../../src/professionals/service/professionals.service";
 import appointmentsRepository from "../../src/appointments/repository/appointments.repository";
 import { TOKEN_COOKIE } from "../../src/auth/constants/auth.constants";
+import authRepository from "../../src/auth/repository/auth.repository";
 
 function authCookie() {
    const token = jwt.sign(
@@ -19,6 +20,11 @@ function authCookie() {
 
 beforeEach(() => {
    mock.restoreAll();
+   mock.method(authRepository, "getById", async () => ({
+      id: "user-id",
+      name: "Teste",
+      email: "teste@teste.com",
+   }));
 });
 
 describe("rota inexistente", () => {
