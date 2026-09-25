@@ -4,7 +4,7 @@ export const appointmentType = z
    .object({
       startAt: z.coerce.date(),
       endAt: z.coerce.date(),
-      professionalId: z.uuid().nonempty(),
+      professionalId: z.uuid(),
    })
    .refine((data) => data.startAt < data.endAt, {
       message: "A data e hora de início deve ser anterior ao término",
