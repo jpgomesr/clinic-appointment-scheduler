@@ -9,12 +9,18 @@ const envSchema = z.object({
       .string()
       .min(1)
       .transform((value) => value.split(",").map((origin) => origin.trim())),
+   SIGNUP_ENABLED: z
+      .string()
+      .default("true")
+      .transform((value) => value === "true"),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-   const missing = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");
+   const missing = parsed.error.issues
+      .map((issue) => issue.path.join("."))
+      .join(", ");
    throw new Error(`Variáveis de ambiente ausentes ou inválidas: ${missing}`);
 }
 

@@ -1,10 +1,11 @@
 import "dotenv/config";
-import { test, describe, beforeEach, mock } from "node:test";
+import { test, describe, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import app from "../../src/app";
 import authRepository from "../../src/auth/repository/auth.repository";
 import type { SignupDto } from "../../src/auth/dto/signup.dto";
+import { env } from "../../src/config/env";
 
 beforeEach(() => {
    mock.restoreAll();
@@ -55,6 +56,26 @@ describe("POST /auth/signup", () => {
 
       assert.equal(response.status, 201);
       assert.equal(savedEmail, "joao@teste.com");
+   });
+});
+
+describe("signup desativado via SIGNUP_ENABLED", () => {
+   afterEach(() => {
+      env.SIGNUP_ENABLED = true;
+   });
+
+   test("retorna 401 quando SIGNUP_ENABLED=false", async () => {
+      env.SIGNUP_ENABLED = false;
+
+      const response = await request(app).post("/auth/signup").send({
+         name: "Teste",
+         email: "novo@teste.com",
+         password: "123456",
+         confirmPassword: "123456",
+      });
+
+      assert.equal(response.status, 401);
+      assert.equal(response.body.message, "Signup desativado");
    });
 });
 

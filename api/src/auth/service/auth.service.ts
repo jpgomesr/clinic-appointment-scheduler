@@ -29,6 +29,9 @@ const authService = {
    },
 
    signup: async (userSignupDto: SignupDto) => {
+      const signupEnabled = env.SIGNUP_ENABLED;
+      if (!signupEnabled) throw AppError.unauthorized("Signup desativado");
+
       const existingUser = await authRepository.exist(userSignupDto);
       if (existingUser) {
          throw AppError.conflict("Email já cadastrado");
