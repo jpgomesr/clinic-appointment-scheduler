@@ -17,7 +17,8 @@ export const appointmentIdType = z.uuid();
 
 export const appointmentFilterType = z.object({
    professionalId: z.uuid().optional(),
-   date: z.iso.date().optional(),
+   from: z.coerce.date().optional(),
+   to: z.coerce.date().optional(),
 });
 
 export type AppointmentFilterDto = z.infer<typeof appointmentFilterType>;

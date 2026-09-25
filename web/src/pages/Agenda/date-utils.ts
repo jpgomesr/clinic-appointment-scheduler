@@ -4,16 +4,6 @@ export function localDayBounds(day: Date): [Date, Date] {
    return [start, end];
 }
 
-function toUtcDateString(date: Date): string {
-   return date.toISOString().slice(0, 10);
-}
-
-export function utcDateStringsForLocalDay(day: Date): string[] {
-   const [start, end] = localDayBounds(day);
-   const lastInstant = new Date(end.getTime() - 1);
-   return Array.from(new Set([toUtcDateString(start), toUtcDateString(lastInstant)]));
-}
-
 export function isWithinLocalDay(iso: string, day: Date): boolean {
    const [start, end] = localDayBounds(day);
    const time = new Date(iso).getTime();

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../../services/api";
 import type { Appointment } from "../../types/appointment";
-import { isWithinLocalDay, utcDateStringsForLocalDay } from "./date-utils";
+import { localDayBounds } from "./date-utils";
 
 type State = {
    byId: Record<string, Appointment>;
@@ -57,18 +57,12 @@ export function useDayAppointments(day: Date) {
 
       async function load() {
          try {
-            const dates = utcDateStringsForLocalDay(day);
-            const responses = await Promise.all(
-               dates.map((date) =>
-                  api.get<{ appointments: Appointment[] }>(`/appointments?date=${date}`, {
-                     signal: controller.signal,
-                  }),
-               ),
+            const [start, end] = localDayBounds(day);
+            const response = await api.get<{ appointments: Appointment[] }>(
+               `/appointments?from=${start.toISOString()}&to=${end.toISOString()}`,
+               { signal: controller.signal },
             );
-            const items = responses
-               .flatMap((response) => response.appointments)
-               .filter((appointment) => isWithinLocalDay(appointment.startAt, day));
-            dispatch({ type: "loaded", items });
+            dispatch({ type: "loaded", items: response.appointments });
             for (const action of pendingRef.current) dispatch(action);
          } catch (err) {
             if (err instanceof DOMException && err.name === "AbortError") return;

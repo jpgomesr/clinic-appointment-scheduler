@@ -49,20 +49,13 @@ const appointmentsService = {
    },
 
    getAll: async (filter: AppointmentFilterDto = {}) => {
-      const { professionalId, date } = filter;
-
-      let startOfDay: Date | undefined;
-      let endOfDay: Date | undefined;
-      if (date) {
-         startOfDay = new Date(`${date}T00:00:00.000Z`);
-         endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-      }
+      const { professionalId, from, to } = filter;
 
       const appointmentsList =
          await appointmentsRepository.findByProfessionalIdAndDate(
             professionalId,
-            startOfDay,
-            endOfDay,
+            from,
+            to,
          );
       return appointmentsList;
    },
