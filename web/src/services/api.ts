@@ -1,4 +1,5 @@
 import { API_URL } from "../config/env";
+import { getToken, clearToken } from "./token";
 
 export class ApiError extends Error {
    status: number;
@@ -10,15 +11,20 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+   const token = getToken();
    const res = await fetch(`${API_URL}${path}`, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
       ...options,
+      headers: {
+         "Content-Type": "application/json",
+         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+         ...options.headers,
+      },
    });
 
    const data = await res.json().catch(() => null);
 
    if (!res.ok) {
+      if (res.status === 401) clearToken();
       throw new ApiError(res.status, data?.message ?? "Erro inesperado");
    }
 

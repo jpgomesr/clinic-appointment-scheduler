@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../services/api";
+import { setToken, clearToken } from "../services/token";
 import {
    AuthContext,
    type LoginInput,
@@ -20,18 +21,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    }, []);
 
    const login = async (input: LoginInput) => {
-      const { user } = await api.post<{ user: User }>("/auth/login", input);
+      const { user, token } = await api.post<{ user: User; token: string }>(
+         "/auth/login",
+         input,
+      );
+      setToken(token);
       setUser(user);
    };
 
    const signup = async (input: SignupInput) => {
-      const { user } = await api.post<{ user: User }>("/auth/signup", input);
+      const { user, token } = await api.post<{ user: User; token: string }>(
+         "/auth/signup",
+         input,
+      );
+      setToken(token);
       setUser(user);
    };
 
    const logout = async () => {
-      await api.post("/auth/logout");
-      setUser(null);
+      try {
+         await api.post("/auth/logout");
+      } finally {
+         clearToken();
+         setUser(null);
+      }
    };
 
    return (
