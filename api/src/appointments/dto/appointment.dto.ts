@@ -1,9 +1,13 @@
 import { z } from "zod";
 
+// exige offset explícito (ex.: "Z" ou "+00:00") para não depender do
+// fuso horário local do processo, como z.coerce.date() faria
+const isoDateWithOffset = z.iso.datetime({ offset: true }).pipe(z.coerce.date());
+
 export const appointmentType = z
    .object({
-      startAt: z.coerce.date(),
-      endAt: z.coerce.date(),
+      startAt: isoDateWithOffset,
+      endAt: isoDateWithOffset,
       professionalId: z.uuid(),
    })
    .refine((data) => data.startAt < data.endAt, {
@@ -17,8 +21,8 @@ export const appointmentIdType = z.uuid();
 
 export const appointmentFilterType = z.object({
    professionalId: z.uuid().optional(),
-   from: z.coerce.date().optional(),
-   to: z.coerce.date().optional(),
+   from: isoDateWithOffset.optional(),
+   to: isoDateWithOffset.optional(),
 });
 
 export type AppointmentFilterDto = z.infer<typeof appointmentFilterType>;

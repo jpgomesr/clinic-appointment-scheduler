@@ -45,10 +45,35 @@ describe("appointmentsService.create", () => {
 });
 
 describe("appointmentsService.edit", () => {
+   test("lança 404 quando o agendamento não existe, mesmo com conflito de horário", async () => {
+      mock.method(appointmentsRepository, "findById", async () => undefined);
+      const findConflict = mock.method(
+         appointmentsRepository,
+         "findConflict",
+         async () => ({ id: "other-appointment" }),
+      );
+
+      await assert.rejects(
+         () => appointmentsService.edit("appointment-id", appointmentDto),
+         (error: any) => {
+            assert.equal(error.status, 404);
+            return true;
+         },
+      );
+      // existência é checada antes do conflito, então findConflict nem deve rodar
+      assert.equal(findConflict.mock.callCount(), 0);
+   });
+
    test("lança 409 ao mover para um horário já ocupado", async () => {
-      mock.method(appointmentsRepository, "findConflict", async () => ({
-         id: "other-appointment",
+      mock.method(appointmentsRepository, "findById", async () => ({
+         id: "appointment-id",
+         ...appointmentDto,
       }));
+      const findConflict = mock.method(
+         appointmentsRepository,
+         "findConflict",
+         async () => ({ id: "other-appointment" }),
+      );
 
       await assert.rejects(
          () => appointmentsService.edit("appointment-id", appointmentDto),
@@ -57,10 +82,12 @@ describe("appointmentsService.edit", () => {
             return true;
          },
       );
+      assert.equal(findConflict.mock.calls[0].arguments[1], "appointment-id");
    });
 
    test("edita o agendamento quando não há conflito", async () => {
       const edited = { id: "appointment-id", ...appointmentDto };
+      mock.method(appointmentsRepository, "findById", async () => edited);
       mock.method(
          appointmentsRepository,
          "findConflict",

@@ -24,6 +24,9 @@ const appointmentsService = {
    },
 
    edit: async (appointmentId: string, appointmentDto: AppointmentDto) => {
+      const current = await appointmentsRepository.findById(appointmentId);
+      if (!current) throw AppError.notFound("Agendamento não encontrado");
+
       const exist = await appointmentsRepository.findConflict(
          appointmentDto,
          appointmentId,
