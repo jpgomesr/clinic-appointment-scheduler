@@ -2,6 +2,7 @@ import express from "express";
 import { env } from "./config/env";
 import cors from "cors";
 import authRouter from "./auth/routes/auth.routes";
+import healthRouter from "./health/routes/health.routes";
 import appointmentsRouter from "./appointments/routes/appointments.routes";
 import professionalsRouter from "./professionals/routes/professionals.routes";
 import { authToken } from "./auth/middleware/auth.middleware";
@@ -15,6 +16,7 @@ app.use(pinoHttp({ logger }));
 app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json());
 app.use("/auth", authRouter);
+app.use("/health", healthRouter);
 app.use("/appointments", authToken, appointmentsRouter);
 app.use("/professionals", authToken, professionalsRouter);
 
