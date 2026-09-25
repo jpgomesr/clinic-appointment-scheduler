@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const users = pgTable(
@@ -23,13 +23,19 @@ export const professionals = pgTable("professionals", {
    name: varchar("name", { length: 255 }).notNull(),
 });
 
-export const appointments = pgTable("appointments", {
-   id: uuid("id").primaryKey().defaultRandom(),
-   startAt: timestamp("start_at").notNull(),
-   endAt: timestamp("end_at").notNull(),
-   professionalId: uuid("professional_id")
-      .references(() => professionals.id)
-      .notNull(),
-   createdAt: timestamp("created_at").defaultNow().notNull(),
-   deletedAt: timestamp("deleted_at"),
-});
+export const appointments = pgTable(
+   "appointments",
+   {
+      id: uuid("id").primaryKey().defaultRandom(),
+      startAt: timestamp("start_at").notNull(),
+      endAt: timestamp("end_at").notNull(),
+      professionalId: uuid("professional_id")
+         .references(() => professionals.id)
+         .notNull(),
+      createdAt: timestamp("created_at").defaultNow().notNull(),
+      deletedAt: timestamp("deleted_at"),
+   },
+   (table) => [
+      check("appointments_end_after_start", sql`${table.endAt} > ${table.startAt}`),
+   ],
+);

@@ -1,0 +1,1 @@
+ALTER TABLE "appointments" ADD CONSTRAINT "appointments_end_after_start" CHECK ("appointments"."end_at" > "appointments"."start_at");
