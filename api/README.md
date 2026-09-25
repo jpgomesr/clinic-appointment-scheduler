@@ -115,7 +115,12 @@ ou deixam o erro subir, e o middleware decide a resposta:
 
 - `AppError` → `res.status(err.status).json({ message: err.message })`.
 - `ZodError` (payload inválido) → 400 com as mensagens de validação.
-- Conflito de exclusion constraint do Postgres (código `23P01`) → 409 com mensagem amigável.
+- Erros de constraint do Postgres, pelo código do erro (hoje cada código vem de uma única
+  constraint):
+  - `23P01` (exclusion `appointments_no_overlap`) → 409 "Horário já ocupado para esse profissional".
+  - `23503` (FK `appointments.professional_id`) → 400 "Profissional não encontrado".
+  - `23505` (índice único `users_email_active_unique`, cadastro concorrente com o mesmo e-mail) →
+    409 "Email já cadastrado".
 - `SyntaxError` de JSON malformado no body → 400.
 - Qualquer outro erro → 500 com mensagem genérica (não vaza detalhe interno) e log via `logger.error`.
 
@@ -192,8 +197,9 @@ repositórios são mockados com `mock.method`:
 - `test/http/appointments.test.ts`: testes de integração HTTP do CRUD de agendamentos — 401 sem
   autenticação, 201 ao criar sem conflito, 409 ao criar com conflito de horário.
 - `test/http/error-handler.test.ts`: testes de integração HTTP do tratamento de erros centralizado —
-  404 de rota inexistente, 400 de JSON malformado, 409 de exclusion constraint do Postgres (`23P01`)
-  e 500 genérico sem vazar detalhe interno.
+  404 de rota inexistente, 400 de JSON malformado, 409 de exclusion constraint do Postgres (`23P01`),
+  400 de profissional inexistente (`23503`), 409 de e-mail duplicado em cadastro concorrente
+  (`23505`) e 500 genérico sem vazar detalhe interno.
 
 Ainda não há teste de integração real de Socket.IO (criar um agendamento em uma "sessão" e ver
 refletido em outra) nem testes rodando contra um Postgres real — ver "Próximos passos" no README raiz.

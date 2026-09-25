@@ -77,6 +77,54 @@ describe("conflito de exclusion constraint no Postgres (23P01)", () => {
    });
 });
 
+describe("profissional inexistente (23503)", () => {
+   test("retorna 400 quando a FK de professional_id é violada", async () => {
+      mock.method(
+         appointmentsRepository,
+         "findConflict",
+         async () => undefined,
+      );
+      mock.method(appointmentsRepository, "insert", async () => {
+         throw Object.assign(new Error("foreign key violation"), {
+            cause: { code: "23503" },
+         });
+      });
+
+      const response = await request(app)
+         .post("/appointments")
+         .set("Authorization", authHeader())
+         .send({
+            startAt: "2026-01-05T09:00:00.000Z",
+            endAt: "2026-01-05T10:00:00.000Z",
+            professionalId: randomUUID(),
+         });
+
+      assert.equal(response.status, 400);
+      assert.equal(response.body.message, "Profissional não encontrado");
+   });
+});
+
+describe("e-mail duplicado em cadastro concorrente (23505)", () => {
+   test("retorna 409 quando o índice único barra o insert", async () => {
+      mock.method(authRepository, "exist", async () => undefined);
+      mock.method(authRepository, "create", async () => {
+         throw Object.assign(new Error("unique violation"), {
+            cause: { code: "23505" },
+         });
+      });
+
+      const response = await request(app).post("/auth/signup").send({
+         name: "Teste",
+         email: "teste@teste.com",
+         password: "123456",
+         confirmPassword: "123456",
+      });
+
+      assert.equal(response.status, 409);
+      assert.equal(response.body.message, "Email já cadastrado");
+   });
+});
+
 describe("erro inesperado no service", () => {
    test("retorna 500 com mensagem genérica, sem vazar detalhe interno", async () => {
       mock.method(professionalsService, "getAll", async () => {
