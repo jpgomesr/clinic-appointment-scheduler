@@ -129,12 +129,20 @@ export function Agenda() {
       setNotice("Agendamento não encontrado — pode ter sido alterado por outra pessoa.");
    }
 
+   async function handleLogout() {
+      try {
+         await logout();
+      } catch (err) {
+         setNotice(err instanceof ApiError ? err.message : "Não foi possível sair. Tente novamente.");
+      }
+   }
+
    return (
       <section className="agenda">
          <header className="agenda-header">
             <div className="agenda-user">
                <span>Olá, {user?.name}</span>
-               <button type="button" onClick={() => logout()}>
+               <button type="button" onClick={() => handleLogout()}>
                   Sair
                </button>
             </div>
