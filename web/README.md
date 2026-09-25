@@ -1,14 +1,15 @@
 # Web
 
 Frontend em React + Vite + TypeScript da agenda de clínica. Consome a API REST (`/auth/*`) para
-autenticação (cookie httpOnly) e o Socket.IO da API para atualização em tempo real.
+autenticação (token JWT via `Authorization: Bearer`) e o Socket.IO da API para atualização em
+tempo real.
 
 ## Stack
 
 - **React 19** + **React Router 7**
 - **Vite** + **TypeScript**
-- **socket.io-client** para tempo real, conectando com `withCredentials: true` (usa o mesmo cookie
-  de sessão emitido pela API)
+- **socket.io-client** para tempo real, autenticando o handshake com o mesmo token JWT usado no
+  REST (`services/socket.ts`)
 
 ## Como rodar
 
@@ -73,9 +74,10 @@ src/
 │                                 `services/socket.ts` para garantir que REST e Socket.IO sempre
 │                                 apontem para o mesmo host
 ├── services/
-│   ├── api.ts                 Wrapper de fetch (get/post/put/delete, credentials: "include",
+│   ├── api.ts                 Wrapper de fetch (get/post/put/delete, header Authorization: Bearer,
 │   │                            tratamento de erro via ApiError)
-│   └── socket.ts               Instância do socket.io-client (autoConnect: false)
+│   ├── token.ts                 Ponto único de leitura/escrita do token JWT em localStorage
+│   └── socket.ts               Instância do socket.io-client (autoConnect: false, auth com o token)
 ├── types/
 │   └── appointment.ts         Tipos compartilhados (Appointment, Professional, payloads de socket)
 └── pages/
@@ -106,14 +108,25 @@ aviso "Agendamento não encontrado" e remove o item obsoleto da lista.
 
 ## Fluxo de autenticação
 
-1. No mount, `AuthProvider` chama `GET /auth/me`; a sessão é validada pelo cookie httpOnly, então não
-   há token para gerenciar manualmente no cliente.
-2. `PrivateRoute`/`PublicRoute` usam `user`/`loading` do `AuthContext` para redirecionar entre
-   `/login`, `/signup` e `/` (Agenda).
-3. Ao autenticar (login/signup), a API seta o cookie de sessão e o `AuthContext` guarda o usuário
-   retornado; o `SocketProvider` reage a essa mudança e conecta o socket.
-4. `logout` chama `POST /auth/logout` (limpa o cookie no servidor) e limpa o usuário no contexto, o
-   que desconecta o socket.
+1. Login/signup (`POST /auth/login`, `POST /auth/signup`) devolvem `{ user, token }`; o token (JWT)
+   é guardado em `localStorage` via `services/token.ts` e o `AuthContext` guarda o usuário retornado.
+2. Toda chamada de `services/api.ts` lê o token salvo e manda `Authorization: Bearer <token>`; o
+   handshake do socket (`services/socket.ts`) manda o mesmo token em `auth.token`. Uma resposta 401
+   de qualquer request limpa o token guardado automaticamente.
+3. No mount, `AuthProvider` chama `GET /auth/me` (usando o token salvo, se houver) para restaurar a
+   sessão entre reloads.
+4. `PrivateRoute`/`PublicRoute` usam `user`/`loading` do `AuthContext` para redirecionar entre
+   `/login`, `/signup` e `/` (Agenda). O `SocketProvider` reage à mudança de `user` para conectar o
+   socket.
+5. `logout` chama `POST /auth/logout`, limpa o token guardado e o usuário no contexto (mesmo se a
+   chamada falhar), o que desconecta o socket.
+
+> **Por quê não cookie httpOnly:** em produção `web` e `api` rodam em subdomínios diferentes do
+> `onrender.com`, que está na Public Suffix List — ou seja, são "sites" diferentes para o
+> navegador, e o cookie de sessão é cross-site (third-party). Isso funcionava no Chrome
+> (Android/Windows) com `sameSite=none; secure`, mas o ITP do iOS/WebKit bloqueia cookies
+> cross-site por padrão independente do `SameSite`, causando "Token não fornecido" só em
+> iPhone/iPad. Por isso a sessão passou a usar `Authorization: Bearer` em vez de cookie.
 
 ## Status
 

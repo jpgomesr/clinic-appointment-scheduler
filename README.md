@@ -10,8 +10,8 @@ tela, e criar/mover/cancelar um agendamento em uma tela precisa refletir nas out
 | Camada | Escolha | Motivo |
 | --- | --- | --- |
 | Backend | Node.js + Express + TypeScript | Ecossistema que domino bem, tipagem ajuda numa regra de negócio (sobreposição de horários) que precisa ser confiável. Cada módulo (`auth`, `appointments`, `professionals`) é organizado em camadas `routes → controller → service → repository`, isolando o acesso a dados (Drizzle) da regra de negócio. |
-| Autenticação | JWT + bcrypt, token em cookie httpOnly | Sessão que sobrevive a reload sem expor o token a JS no cliente (mitiga XSS); `cookie-parser` no Express e o mesmo cookie é lido no handshake do Socket.IO. |
-| Tempo real | Socket.IO | Abstrai reconexão e fallback de transporte; o handshake é autenticado lendo o cookie JWT (`parseCookie` + `jwt.verify`). Eventos de agendamento são broadcast global (`io.emit`) para todos os clientes autenticados — não há conceito de clínica no modelo de dados hoje, então isolar por room não se aplica. |
+| Autenticação | JWT + bcrypt, token via `Authorization: Bearer` | Sessão restaurável entre reloads (`localStorage` no cliente). Cookie httpOnly foi descartado porque `web` e `api` rodam em subdomínios diferentes do `onrender.com` em produção (sites diferentes para o navegador), e o ITP do iOS/WebKit bloqueia cookies cross-site mesmo com `SameSite=None; Secure` — quebrava o login só em iPhone/iPad. |
+| Tempo real | Socket.IO | Abstrai reconexão e fallback de transporte; o handshake é autenticado lendo o mesmo token JWT do REST (`socket.handshake.auth.token` + `jwt.verify`). Eventos de agendamento são broadcast global (`io.emit`) para todos os clientes autenticados — não há conceito de clínica no modelo de dados hoje, então isolar por room não se aplica. |
 | Banco | PostgreSQL + Drizzle ORM | Dados relacionais (hoje `users`, `professionals` e `appointments`); Drizzle dá migrations tipadas e a regra "sem sobreposição" é reforçada por uma constraint `EXCLUDE` do Postgres. |
 | Frontend | React + Vite + TypeScript | Build rápido em dev, tipagem compartilhando os contratos da API. |
 | Infra local | Docker Compose (api + web + postgres) | Sobe o ambiente inteiro com um comando, sem exigir Postgres instalado na máquina. |
@@ -62,11 +62,11 @@ docker-compose.yaml   Orquestração local (api, web, postgres)
 As 5 regras funcionais do enunciado (auth, agenda do dia, criar/mover/cancelar, sem sobreposição,
 tempo real) estão implementadas de ponta a ponta, backend e frontend. Hoje existe:
 
-- [x] Backend Express + TS com auth completa: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout` — bcrypt para hash de senha, JWT emitido em cookie httpOnly, middleware `authToken` protegendo rotas.
+- [x] Backend Express + TS com auth completa: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout` — bcrypt para hash de senha, JWT retornado no corpo da resposta e enviado via `Authorization: Bearer`, middleware `authToken` protegendo rotas.
 - [x] Banco modelado com Drizzle ORM: tabelas `users`, `professionals` e `appointments` (com migrations geradas) e conectado à API via `db/client.ts`.
 - [x] CRUD de agendamentos (`POST/GET/PUT/DELETE /appointments`, com filtro por profissional/data na listagem) e regra de não sobreposição validada em duas camadas — checagem na aplicação e constraint `EXCLUDE USING gist` no Postgres.
 - [x] Listagem de profissionais (`GET /professionals`); CRUD de profissionais está fora do escopo, então são populados via seed rodado na migration.
-- [x] Socket.IO configurado, autenticando o handshake pelo mesmo cookie JWT do REST, com broadcast global dos eventos de agendamento (`appointment:created`, `appointment:updated`, `appointment:cancelled`) emitidos a cada mutação real de agendamento.
+- [x] Socket.IO configurado, autenticando o handshake pelo mesmo token JWT do REST, com broadcast global dos eventos de agendamento (`appointment:created`, `appointment:updated`, `appointment:cancelled`) emitidos a cada mutação real de agendamento.
 - [x] `docker-compose.yaml` com api, web e Postgres (com healthcheck).
 - [x] Frontend React + Vite com roteamento (`PrivateRoute`/`PublicRoute`), `AuthContext`/`SocketContext`, telas de Login e Signup.
 - [x] Tela de **Agenda** (`web/src/pages/Agenda/`): visualização do dia agrupada por hora, filtro por

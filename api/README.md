@@ -1,16 +1,17 @@
 # API
 
-Backend em Node.js + Express + TypeScript da agenda de clínica: autenticação via JWT (cookie httpOnly)
-e WebSocket (Socket.IO) autenticado pelo mesmo cookie, para atualização em tempo real entre telas.
+Backend em Node.js + Express + TypeScript da agenda de clínica: autenticação via JWT (token enviado
+em `Authorization: Bearer`) e WebSocket (Socket.IO) autenticado pelo mesmo token, para atualização
+em tempo real entre telas.
 
 ## Stack
 
 - **Express 5** + TypeScript
 - **PostgreSQL** + **Drizzle ORM** (migrations em `drizzle/`)
-- **Socket.IO** para tempo real, com handshake autenticado por cookie JWT
+- **Socket.IO** para tempo real, com handshake autenticado por token JWT
 - **JWT** (`jsonwebtoken`) + **bcrypt** (`bcryptjs`) para autenticação
 - **Zod** para validação de payloads
-- **cookie-parser** + **cors** (com `credentials: true`) para o cookie httpOnly trafegar entre `web` e `api`
+- **cors** para permitir requisições da origem do `web`
 
 ## Como rodar
 
@@ -57,7 +58,7 @@ npm run dev           # http://localhost:3000
 | `JWT_SECRET` | Segredo usado para assinar/verificar o JWT (REST e handshake do Socket.IO) |
 | `DATABASE_URL` | Connection string do Postgres, usada pelo Drizzle |
 | `CORS_ORIGIN` | Lista de origens permitidas separadas por vírgula (ex.: `http://localhost:5173,http://localhost:8080`) |
-| `NODE_ENV` | Quando `production`, marca o cookie de sessão como `secure` |
+| `NODE_ENV` | Ambiente de execução (`production`/`development`) |
 
 ## Estrutura
 
@@ -67,16 +68,15 @@ Os três módulos (`auth`, `appointments`, `professionals`) seguem o mesmo padr�
 
 ```
 src/
-├── app.ts                  Configuração do Express (cors, json, cookies, rotas)
+├── app.ts                  Configuração do Express (cors, json, rotas)
 ├── index.ts                Bootstrap: cria o HTTP server, sobe o Socket.IO e escuta a porta
-├── socket.ts               Setup do Socket.IO: autenticação do handshake via cookie JWT
+├── socket.ts               Setup do Socket.IO: autenticação do handshake via token JWT
 ├── socket.events.ts         Tipos dos eventos de socket (ServerToClientEvents, SocketData)
 ├── auth/
 │   ├── routes/auth.routes.ts           Rotas de autenticação
 │   ├── controller/auth.controller.ts   Handlers HTTP (login, signup, me, logout)
 │   ├── service/auth.service.ts         Regras de negócio: hash de senha, emissão/verificação de JWT
-│   ├── middleware/auth.middleware.ts   Middleware `authToken` que protege rotas via cookie
-│   ├── constants/auth.constants.ts     Nome/opções do cookie de sessão
+│   ├── middleware/auth.middleware.ts   Middleware `authToken` que protege rotas via `Authorization: Bearer`
 │   └── dto/                            Schemas Zod de entrada (login, signup)
 ├── appointments/
 │   ├── routes/appointments.routes.ts         Rotas de agendamentos
@@ -120,16 +120,16 @@ formato, logging e comportamento de qualquer outro 404 da API.
 
 ## Endpoints
 
-Todas as rotas de auth ficam sob o prefixo `/auth`. O token JWT é entregue em um cookie httpOnly
-(`res.cookie`) e enviado automaticamente pelo navegador em requisições subsequentes — o frontend não
-lê nem manipula o token diretamente.
+Todas as rotas de auth ficam sob o prefixo `/auth`. O token JWT é entregue no corpo da resposta de
+login/signup; o cliente guarda esse token e passa a mandá-lo em `Authorization: Bearer <token>` nas
+requisições seguintes (REST e handshake do Socket.IO).
 
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| `POST` | `/auth/signup` | Cria um usuário (`name`, `email`, `password`, `confirmPassword`) e retorna o usuário logado |
-| `POST` | `/auth/login` | Autentica por `email`/`password` e retorna o usuário logado |
-| `GET` | `/auth/me` | Retorna o usuário do cookie de sessão (rota protegida por `authToken`) |
-| `POST` | `/auth/logout` | Limpa o cookie de sessão |
+| `POST` | `/auth/signup` | Cria um usuário (`name`, `email`, `password`, `confirmPassword`) e retorna `{ user, token }` |
+| `POST` | `/auth/login` | Autentica por `email`/`password` e retorna `{ user, token }` |
+| `GET` | `/auth/me` | Retorna o usuário do token enviado em `Authorization` (rota protegida por `authToken`) |
+| `POST` | `/auth/logout` | Confirma o logout (invalidação do token é responsabilidade do cliente, que o descarta) |
 
 Rotas de `/appointments` e `/professionals` ficam atrás do middleware `authToken` (exigem sessão
 válida).
@@ -166,8 +166,9 @@ duas camadas:
 
 ## Tempo real (Socket.IO)
 
-- O handshake é autenticado lendo o mesmo cookie de sessão do REST e validando com `jwt.verify`
-  (ver `src/socket.ts`); conexões sem cookie válido são rejeitadas.
+- O handshake é autenticado lendo o token JWT de `socket.handshake.auth.token` (mandado pelo
+  cliente no mesmo `Authorization: Bearer` usado no REST) e validando com `jwt.verify` (ver
+  `src/socket.ts`); conexões sem token válido são rejeitadas.
 - Não há conceito de clínica no modelo de dados hoje (só `professionals` e `appointments`), então os
   eventos são broadcast global via `io.emit` para todos os clientes autenticados conectados, em vez de
   isolados por room.
