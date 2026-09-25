@@ -104,7 +104,9 @@ src/
 A agenda assina `appointment:created`, `appointment:updated` e `appointment:cancelled` via
 `useSocket` e atualiza a lista local (`upsert`/`remove`) sem recarregar a página; se uma
 edição/cancelamento chega tarde (404, porque outra tela já alterou o registro), o diálogo mostra o
-aviso "Agendamento não encontrado" e remove o item obsoleto da lista.
+aviso "Agendamento não encontrado" e remove o item obsoleto da lista. Quando o socket reconecta
+(evento `reconnect` do Manager), a agenda chama `reload` do `useDayAppointments` e busca o dia de
+novo, já que eventos emitidos durante a queda não são reenviados pelo servidor.
 
 ## Fluxo de autenticação
 
@@ -112,7 +114,9 @@ aviso "Agendamento não encontrado" e remove o item obsoleto da lista.
    é guardado em `localStorage` via `services/token.ts` e o `AuthContext` guarda o usuário retornado.
 2. Toda chamada de `services/api.ts` lê o token salvo e manda `Authorization: Bearer <token>`; o
    handshake do socket (`services/socket.ts`) manda o mesmo token em `auth.token`. Uma resposta 401
-   de qualquer request limpa o token guardado automaticamente.
+   de qualquer request limpa o token guardado e zera o usuário no `AuthContext` (via
+   `setUnauthorizedHandler`), levando de volta ao `/login`; um handshake de socket recusado
+   (`connect_error` com "Authentication error") faz logout pelo `SocketProvider`.
 3. No mount, `AuthProvider` chama `GET /auth/me` (usando o token salvo, se houver) para restaurar a
    sessão entre reloads.
 4. `PrivateRoute`/`PublicRoute` usam `user`/`loading` do `AuthContext` para redirecionar entre
