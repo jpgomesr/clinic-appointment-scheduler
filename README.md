@@ -44,10 +44,10 @@ cada uma em `api/README.md` ou `web/README.md`:
   (mais lento) resolver por cima depois. Ver `useDayAppointments.ts` em [`web/README.md`](web/README.md).
 - **Profissionais sem CRUD, populados via seed.** Fora do escopo das 5 regras funcionais do
   enunciado; a prioridade foi dada às regras obrigatórias (ver "Próximos passos" abaixo).
-- **Testes de API com repositórios mockados, sem Postgres real.** Roda rápido e sem exigir infra nos
-  testes; o trade-off é que a própria constraint `EXCLUDE` (fonte da verdade contra condição de
-  corrida) não é exercitada pelos testes atuais — coerente com o item 1 de "Próximos passos" (teste
-  de integração de tempo real). Ver "Testes" em [`api/README.md`](api/README.md).
+- **Testes em duas camadas.** `npm test` roda com repositórios mockados (rápido, sem infra); as
+  constraints reais do Postgres (`EXCLUDE`, FK, índice único parcial, `CHECK`) são exercitadas à parte
+  por `npm run test:db`, que exige uma conexão real com o banco. Ver "Testes" em
+  [`api/README.md`](api/README.md).
 
 ## Deploy
 
@@ -109,7 +109,8 @@ tempo real) estão implementadas de ponta a ponta, backend e frontend. Hoje exis
 
 - [x] Backend Express + TS com auth completa: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout` — bcrypt para hash de senha, JWT retornado no corpo da resposta e enviado via `Authorization: Bearer`, middleware `authToken` protegendo rotas.
 - [x] Banco modelado com Drizzle ORM: tabelas `users`, `professionals` e `appointments` (com migrations geradas) e conectado à API via `db/client.ts`.
-- [x] CRUD de agendamentos (`POST/GET/PUT/DELETE /appointments`, com filtro por profissional/data na listagem) e regra de não sobreposição validada em duas camadas — checagem na aplicação e constraint `EXCLUDE USING gist` no Postgres.
+- [x] CRUD de agendamentos (`POST/GET/PUT/DELETE /appointments`, com filtro por profissional e intervalo `from`/`to` na listagem) e regra de não sobreposição validada em duas camadas — checagem na aplicação e constraint `EXCLUDE USING gist` no Postgres.
+- [x] `GET /health`, verificando a conectividade com o banco antes de responder 200 (503 quando o Postgres não responde).
 - [x] Listagem de profissionais (`GET /professionals`); CRUD de profissionais está fora do escopo, então são populados via seed rodado na migration.
 - [x] Socket.IO configurado, autenticando o handshake pelo mesmo token JWT do REST, com broadcast global dos eventos de agendamento (`appointment:created`, `appointment:updated`, `appointment:cancelled`) emitidos a cada mutação real de agendamento.
 - [x] `docker-compose.yaml` com api, web e Postgres (com healthcheck).
@@ -122,9 +123,10 @@ tempo real) estão implementadas de ponta a ponta, backend e frontend. Hoje exis
   dormiu, restart da API) a agenda do dia é recarregada, já que eventos emitidos durante a queda
   não são reenviados; e sessão expirada (401 no REST ou handshake do socket recusado) leva de volta
   ao login em vez de deixar a tela quebrada.
-- [x] Testes automatizados da API (`node:test` + `supertest`, rodados via `npm test` em `api/`): teste
-  unitário da regra de sobreposição e testes de integração HTTP de autenticação, agendamentos e
-  tratamento de erros centralizado — ver "Testes" em `api/README.md`.
+- [x] Testes automatizados da API (`node:test` + `supertest`, em `api/`): `npm test` cobre regra de
+  sobreposição, autenticação, agendamentos e tratamento de erros centralizado com repositórios
+  mockados; `npm run test:db` exercita as constraints reais do Postgres — ver "Testes" em
+  `api/README.md`.
 
 ## Próximos passos
 
@@ -155,11 +157,9 @@ Além disso, ficaram de fora por escopo e seriam os próximos passos num projeto
    do Postgres) para propagar os eventos entre elas.
 6. **Isolamento por clínica** — os eventos são broadcast global porque o modelo não tem clínica;
    com multi-tenant, cada clínica viraria uma room do Socket.IO.
-7. **Datas com fuso** — trocar `timestamp` por `timestamptz` e fazer a API receber o intervalo
-   (`from`/`to` em ISO) em vez de uma data UTC, eliminando a compensação de fuso feita no front.
-8. **Modelo do agendamento mais completo** — paciente, descrição e status, além de CRUD de
+7. **Modelo do agendamento mais completo** — paciente, descrição e status, além de CRUD de
    profissionais (hoje populados por seed).
-9. **Rate limit no login** — proteger `/auth/login` e `/auth/signup` contra força bruta.
+8. **Rate limit no login** — proteger `/auth/login` e `/auth/signup` contra força bruta.
 
 ## Uso de IA
 

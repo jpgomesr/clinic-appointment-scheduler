@@ -49,7 +49,8 @@ npm run dev           # http://localhost:3000
 | `npm start` | Roda a API já compilada (`node dist/index.js`) |
 | `npm run db:generate` | Gera uma nova migration a partir do schema (`src/db/schema.ts`) |
 | `npm run db:migrate` | Aplica as migrations pendentes no banco |
-| `npm test` | Roda a suíte de testes (`node:test`) em `src/**/*.test.ts` e `test/**/*.test.ts` |
+| `npm test` | Roda a suíte de testes (`node:test`) em `src/**/*.test.ts` e `test/**/*.test.ts`, com repositórios mockados |
+| `npm run test:db` | Roda a suíte de integração real contra o Postgres, em `test/db/**/*.dbtest.ts` — requer `DATABASE_URL` configurada |
 
 ## Variáveis de ambiente (`.env`)
 
@@ -60,6 +61,7 @@ npm run dev           # http://localhost:3000
 | `DATABASE_URL` | Connection string do Postgres, usada pelo Drizzle |
 | `CORS_ORIGIN` | Lista de origens permitidas separadas por vírgula (ex.: `http://localhost:5173,http://localhost:8080`) |
 | `NODE_ENV` | Ambiente de execução (`production`/`development`) |
+| `SIGNUP_ENABLED` | Booleana (`true`/`false`), default `true`. Quando `false`, `POST /auth/signup` responde 401 "Signup desativado" — permite fechar o cadastro sem deploy |
 
 `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGIN` são obrigatórias e validadas com Zod na inicialização
 (`src/config/env.ts`): se alguma faltar, a API não sobe e o erro diz quais variáveis estão faltando.
@@ -95,6 +97,10 @@ src/
 │   ├── controller/professionals.controller.ts Handler HTTP (getAll)
 │   ├── service/professionals.service.ts       Busca todos os profissionais
 │   └── repository/professionals.repository.ts Query Drizzle: findAll
+├── health/
+│   ├── routes/health.routes.ts         Rota `GET /health`, sem autenticação
+│   ├── controller/health.controller.ts Handler HTTP: 200 se o banco responde, 503 se não
+│   └── repository/health.repository.ts Query mínima (`ping`) contra o Postgres
 ├── types/
 │   └── express.d.ts        Augmenta `Express.Locals.io` e `Express.Request.user`
 ├── shared/
@@ -102,7 +108,9 @@ src/
 │   ├── middleware/error-handler.ts    Middleware de erro centralizado (ver "Tratamento de erros" abaixo)
 │   └── logger/logger.ts               Logger estruturado (pino), com o header `authorization` redigido nos logs de request
 └── db/
-    ├── client.ts             Cliente Drizzle/pg
+    ├── client.ts             Cliente Drizzle/pg; exporta o `pool` (usado pelos testes de integração
+    │                          para fechar a conexão) e trata o evento `error` de clientes ociosos do
+    │                          pool, que sem listener derrubaria o processo
     └── schema.ts              Tabelas: `users`, `professionals`, `appointments`
 drizzle/                      Migrations SQL geradas pelo Drizzle Kit
 ```
@@ -115,12 +123,19 @@ ou deixam o erro subir, e o middleware decide a resposta:
 
 - `AppError` → `res.status(err.status).json({ message: err.message })`.
 - `ZodError` (payload inválido) → 400 com as mensagens de validação.
-- Erros de constraint do Postgres, pelo código do erro (hoje cada código vem de uma única
-  constraint):
-  - `23P01` (exclusion `appointments_no_overlap`) → 409 "Horário já ocupado para esse profissional".
-  - `23503` (FK `appointments.professional_id`) → 400 "Profissional não encontrado".
-  - `23505` (índice único `users_email_active_unique`, cadastro concorrente com o mesmo e-mail) →
-    409 "Email já cadastrado".
+- Erros de constraint do Postgres, mapeados primariamente pelo **nome da constraint** — um mesmo
+  código (ex.: `23505`) pode ser emitido por mais de uma constraint no banco, então o nome evita
+  reaproveitar a mensagem errada. O código do erro só é usado como fallback, para quando o driver não
+  informa a constraint:
+  - `appointments_no_overlap` (`23P01`, exclusion) → 409 "Horário já ocupado para esse profissional".
+  - `appointments_professional_id_professionals_id_fk` (`23503`, FK) → 400 "Profissional não
+    encontrado".
+  - `users_email_active_unique` (`23505`, índice único parcial, cadastro concorrente com o mesmo
+    e-mail) → 409 "Email já cadastrado".
+  - `appointments_end_after_start` (`23514`, check) → 400 "A data e hora de início deve ser anterior
+    ao término".
+  - Constraint presente mas desconhecida → não cai no fallback por código, para não misturar
+    violações de constraints diferentes; vira 500 genérico.
 - `SyntaxError` de JSON malformado no body → 400.
 - Qualquer outro erro → 500 com mensagem genérica (não vaza detalhe interno) e log via `logger.error`.
 
@@ -130,6 +145,10 @@ Rotas não mapeadas por nenhum router também passam por esse mesmo caminho: o c
 formato, logging e comportamento de qualquer outro 404 da API.
 
 ## Endpoints
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/health` | Sem autenticação. Retorna 200 `{ status: "ok" }` se o banco responde, 503 `{ status: "unavailable" }` se não |
 
 Todas as rotas de auth ficam sob o prefixo `/auth`. O token JWT é entregue no corpo da resposta de
 login/signup; o cliente guarda esse token e passa a mandá-lo em `Authorization: Bearer <token>` nas
@@ -151,7 +170,7 @@ válida).
 | Método | Rota | Descrição |
 | --- | --- | --- |
 | `POST` | `/appointments` | Cria um agendamento (`startAt`, `endAt`, `professionalId`); valida `startAt < endAt` e checa sobreposição |
-| `GET` | `/appointments` | Lista agendamentos não cancelados, com filtros opcionais `professionalId` e `date` (`YYYY-MM-DD`) |
+| `GET` | `/appointments` | Lista agendamentos não cancelados, com filtros opcionais `professionalId` e `from`/`to` (datas ISO) |
 | `GET` | `/appointments/:id` | Retorna um agendamento por id (404 se não existir ou estiver cancelado) |
 | `PUT` | `/appointments/:id` | Edita/move um agendamento (mesma validação de sobreposição, excluindo o próprio registro) |
 | `DELETE` | `/appointments/:id` | Cancela um agendamento (soft delete via `deletedAt`) |
@@ -178,6 +197,10 @@ duas camadas:
 
 `appointments` e `users` usam soft delete (`deletedAt`); `professionals` não tem essa coluna.
 
+Além da `EXCLUDE`, a constraint `appointments_end_after_start` (`CHECK`, migration
+`drizzle/0004_sloppy_rick_jones.sql`) garante no banco que `end_at > start_at`, complementando a
+validação já feita no schema Zod do payload.
+
 ## Testes
 
 ```bash
@@ -199,10 +222,22 @@ repositórios são mockados com `mock.method`:
 - `test/http/error-handler.test.ts`: testes de integração HTTP do tratamento de erros centralizado —
   404 de rota inexistente, 400 de JSON malformado, 409 de exclusion constraint do Postgres (`23P01`),
   400 de profissional inexistente (`23503`), 409 de e-mail duplicado em cadastro concorrente
-  (`23505`) e 500 genérico sem vazar detalhe interno.
+  (`23505`), constraint desconhecida reaproveitando um código já mapeado (500 genérico) e 500
+  genérico sem vazar detalhe interno.
+- `test/http/health.test.ts`: testes de integração HTTP do `GET /health` — 200 quando o banco
+  responde, 503 quando falha.
+
+```bash
+npm run test:db
+```
+
+Suíte separada, contra um Postgres real (não mockada): `test/db/appointments.exclude.dbtest.ts`
+exercita diretamente as constraints do banco — `appointments_no_overlap` (exclusion), a FK de
+`professional_id`, `users_email_active_unique` (índice único parcial) e `appointments_end_after_start`
+(check) — confirmando os códigos e nomes de constraint que o `error-handler` espera.
 
 Ainda não há teste de integração real de Socket.IO (criar um agendamento em uma "sessão" e ver
-refletido em outra) nem testes rodando contra um Postgres real — ver "Próximos passos" no README raiz.
+refletido em outra) — ver "Próximos passos" no README raiz.
 
 ## Tempo real (Socket.IO)
 
