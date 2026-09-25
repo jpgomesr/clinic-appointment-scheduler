@@ -16,6 +16,18 @@ tela, e criar/mover/cancelar um agendamento em uma tela precisa refletir nas out
 | Frontend | React + Vite + TypeScript | Build rápido em dev, tipagem compartilhando os contratos da API. |
 | Infra local | Docker Compose (api + web + postgres) | Sobe o ambiente inteiro com um comando, sem exigir Postgres instalado na máquina. |
 
+## Deploy
+
+A versão apresentada está no ar no Render:
+
+- Web: https://appointments-lxpz.onrender.com/
+- API: https://clinic-appointment-scheduler.onrender.com
+
+Os serviços estão no plano gratuito, que hiberna após um período sem uso — o primeiro acesso pode
+levar cerca de 1 minuto enquanto a API acorda (o socket conecta logo em seguida). Para ver o tempo
+real, abra o front em duas abas ou dois navegadores, entre com a mesma conta (ou crie uma em
+"Cadastre-se") e crie, mova ou cancele um agendamento em uma delas.
+
 ## Como rodar localmente
 
 ### Opção 1 — Docker Compose (recomendado)
@@ -73,17 +85,42 @@ tempo real) estão implementadas de ponta a ponta, backend e frontend. Hoje exis
   profissional, navegação entre dias, criação/edição via diálogo, cancelamento com confirmação, e
   atualização em tempo real assinando os eventos de socket que o backend emite — sem precisar de F5
   em nenhuma das telas abertas.
+- [x] Resiliência da tela aberta o dia todo: ao reconectar o socket (queda de rede, notebook que
+  dormiu, restart da API) a agenda do dia é recarregada, já que eventos emitidos durante a queda
+  não são reenviados; e sessão expirada (401 no REST ou handshake do socket recusado) leva de volta
+  ao login em vez de deixar a tela quebrada.
+- [x] Testes automatizados da API (`node:test` + `supertest`, rodados via `npm test` em `api/`): teste
+  unitário da regra de sobreposição e testes de integração HTTP de autenticação, agendamentos e
+  tratamento de erros centralizado — ver "Testes" em `api/README.md`.
 
 ## Próximos passos
 
-As 5 regras funcionais do enunciado já estão prontas. Ainda dentro do prazo, o próximo passo é:
+As 5 regras funcionais do enunciado já estão prontas, com testes cobrindo a regra de sobreposição e o
+tratamento de erros HTTP da API. Ainda falta:
 
-1. **Testes** — pelo menos da regra de sobreposição, que é a parte mais sensível a bug, e um teste de
-   integração cobrindo o fluxo de tempo real (criar em uma "sessão", ver refletido em outra).
+1. **Teste de integração de tempo real** — cobrindo o fluxo do Socket.IO de ponta a ponta (criar um
+   agendamento em uma "sessão" e ver refletido em outra).
+2. **Testes de frontend** — hoje `web/` não tem nenhum teste automatizado.
 
-Se o prazo acabar antes de os testes ficarem prontos, o corte é esse: sem testes automatizados, mas
-com as 5 regras funcionais do enunciado com prioridade absoluta. O polimento visual (CSS) não entra
-nesse corte, já que é gerado com apoio de IA e não consome tempo significativo do prazo.
+Se o prazo acabar antes de esses testes ficarem prontos, o corte é esse: as 5 regras funcionais do
+enunciado e os testes de backend já entregues têm prioridade absoluta sobre o restante. O polimento
+visual (CSS) não entra nesse corte, já que é gerado com apoio de IA e não consome tempo significativo
+do prazo.
+
+Além disso, ficaram de fora por escopo e seriam os próximos passos num projeto real:
+
+3. **Logout com revogação** — o logout hoje é stateless: o JWT continua válido até expirar (8h).
+   Faria access token curto + refresh token rotativo, com revogação no servidor.
+4. **Escala horizontal do tempo real** — `io.emit` só alcança clientes conectados na mesma
+   instância. Com mais de uma instância, usaria o `@socket.io/redis-adapter` (ou `LISTEN/NOTIFY`
+   do Postgres) para propagar os eventos entre elas.
+5. **Isolamento por clínica** — os eventos são broadcast global porque o modelo não tem clínica;
+   com multi-tenant, cada clínica viraria uma room do Socket.IO.
+6. **Datas com fuso** — trocar `timestamp` por `timestamptz` e fazer a API receber o intervalo
+   (`from`/`to` em ISO) em vez de uma data UTC, eliminando a compensação de fuso feita no front.
+7. **Modelo do agendamento mais completo** — paciente, descrição e status, além de CRUD de
+   profissionais (hoje populados por seed).
+8. **Rate limit no login** — proteger `/auth/login` e `/auth/signup` contra força bruta.
 
 ## Uso de IA
 
