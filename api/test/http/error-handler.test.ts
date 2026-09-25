@@ -56,7 +56,7 @@ describe("conflito de exclusion constraint no Postgres (23P01)", () => {
       );
       mock.method(appointmentsRepository, "insert", async () => {
          throw Object.assign(new Error("exclusion constraint violation"), {
-            cause: { code: "23P01" },
+            cause: { code: "23P01", constraint: "appointments_no_overlap" },
          });
       });
 
@@ -86,7 +86,10 @@ describe("profissional inexistente (23503)", () => {
       );
       mock.method(appointmentsRepository, "insert", async () => {
          throw Object.assign(new Error("foreign key violation"), {
-            cause: { code: "23503" },
+            cause: {
+               code: "23503",
+               constraint: "appointments_professional_id_professionals_id_fk",
+            },
          });
       });
 
@@ -109,7 +112,7 @@ describe("e-mail duplicado em cadastro concorrente (23505)", () => {
       mock.method(authRepository, "exist", async () => undefined);
       mock.method(authRepository, "create", async () => {
          throw Object.assign(new Error("unique violation"), {
-            cause: { code: "23505" },
+            cause: { code: "23505", constraint: "users_email_active_unique" },
          });
       });
 
@@ -122,6 +125,27 @@ describe("e-mail duplicado em cadastro concorrente (23505)", () => {
 
       assert.equal(response.status, 409);
       assert.equal(response.body.message, "Email já cadastrado");
+   });
+});
+
+describe("constraint desconhecida com código reutilizado (23505)", () => {
+   test("retorna 500 genérico, sem reaproveitar a mensagem de e-mail duplicado", async () => {
+      mock.method(authRepository, "exist", async () => undefined);
+      mock.method(authRepository, "create", async () => {
+         throw Object.assign(new Error("unique violation em outra tabela"), {
+            cause: { code: "23505", constraint: "outra_constraint_desconhecida" },
+         });
+      });
+
+      const response = await request(app).post("/auth/signup").send({
+         name: "Teste",
+         email: "teste@teste.com",
+         password: "123456",
+         confirmPassword: "123456",
+      });
+
+      assert.equal(response.status, 500);
+      assert.equal(response.body.message, "Erro interno do servidor");
    });
 });
 
