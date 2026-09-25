@@ -43,7 +43,7 @@ export function Agenda() {
    const [dialogState, setDialogState] = useState<DialogState>({ kind: "closed" });
    const [notice, setNotice] = useState<string | null>(null);
 
-   const { appointments, loading, error, upsert, remove } = useDayAppointments(day);
+   const { appointments, loading, error, upsert, remove, reload } = useDayAppointments(day);
 
    useEffect(() => {
       let cancelled = false;
@@ -82,13 +82,16 @@ export function Agenda() {
       socket.on("appointment:created", onCreated);
       socket.on("appointment:updated", onUpdated);
       socket.on("appointment:cancelled", onCancelled);
+      // eventos emitidos enquanto a conexão estava caída não são reenviados
+      socket.io.on("reconnect", reload);
 
       return () => {
          socket.off("appointment:created", onCreated);
          socket.off("appointment:updated", onUpdated);
          socket.off("appointment:cancelled", onCancelled);
+         socket.io.off("reconnect", reload);
       };
-   }, [socket, upsert, remove]);
+   }, [socket, upsert, remove, reload]);
 
    useEffect(() => {
       if (!notice) return;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../../services/api";
 import type { Appointment } from "../../types/appointment";
 import { isWithinLocalDay, utcDateStringsForLocalDay } from "./date-utils";
@@ -45,6 +45,7 @@ export function useDayAppointments(day: Date) {
       error: null,
    });
 
+   const [reloadKey, setReloadKey] = useState(0);
    const loadingRef = useRef(false);
    const pendingRef = useRef<Action[]>([]);
 
@@ -83,7 +84,9 @@ export function useDayAppointments(day: Date) {
 
       load();
       return () => controller.abort();
-   }, [day]);
+   }, [day, reloadKey]);
+
+   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
    const upsert = useCallback((item: Appointment) => {
       const action: Action = { type: "upsert", item };
@@ -100,5 +103,5 @@ export function useDayAppointments(day: Date) {
       (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
    );
 
-   return { appointments, loading: state.loading, error: state.error, upsert, remove };
+   return { appointments, loading: state.loading, error: state.error, upsert, remove, reload };
 }
