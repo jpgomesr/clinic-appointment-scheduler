@@ -158,11 +158,11 @@ requisições seguintes (REST e handshake do Socket.IO).
 | --- | --- | --- |
 | `POST` | `/auth/signup` | Cria um usuário (`name`, `email`, `password`, `confirmPassword`) e retorna `{ user, token }`; `password === confirmPassword` é validado no próprio schema Zod |
 | `POST` | `/auth/login` | Autentica por `email`/`password` e retorna `{ user, token }` |
+| `GET` | `/auth/me` | Retorna o usuário do token enviado em `Authorization` (rota protegida por `authToken`) |
+| `POST` | `/auth/logout` | Confirma o logout (invalidação do token é responsabilidade do cliente, que o descarta) |
 
 O e-mail é normalizado (`trim` + minúsculas) nos DTOs de signup e login, e a busca por e-mail compara
 com `lower(email)` para também encontrar contas criadas antes dessa normalização.
-| `GET` | `/auth/me` | Retorna o usuário do token enviado em `Authorization` (rota protegida por `authToken`) |
-| `POST` | `/auth/logout` | Confirma o logout (invalidação do token é responsabilidade do cliente, que o descarta) |
 
 Rotas de `/appointments` e `/professionals` ficam atrás do middleware `authToken` (exigem sessão
 válida).
