@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import request from "supertest";
 import app from "../../src/app";
 import authRepository from "../../src/auth/repository/auth.repository";
+import type { SignupDto } from "../../src/auth/dto/signup.dto";
 
 beforeEach(() => {
    mock.restoreAll();
@@ -35,6 +36,25 @@ describe("POST /auth/signup", () => {
       assert.equal(response.status, 400);
       assert.equal(response.body.message, "Senhas não conferem");
       assert.equal(exist.mock.callCount(), 0);
+   });
+
+   test("normaliza o e-mail (trim + minúsculas) antes de salvar", async () => {
+      mock.method(authRepository, "exist", async () => undefined);
+      let savedEmail: string | undefined;
+      mock.method(authRepository, "create", async (dto: SignupDto) => {
+         savedEmail = dto.email;
+         return [{ id: "user-id", name: "Teste", email: dto.email }];
+      });
+
+      const response = await request(app).post("/auth/signup").send({
+         name: "Teste",
+         email: "  Joao@Teste.COM ",
+         password: "123456",
+         confirmPassword: "123456",
+      });
+
+      assert.equal(response.status, 201);
+      assert.equal(savedEmail, "joao@teste.com");
    });
 });
 

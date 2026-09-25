@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../db/client";
 import { users } from "../../db/schema";
 import { SignupDto } from "../dto/signup.dto";
@@ -33,7 +33,11 @@ const authRepository = {
 
    exist: async (userDto: SignupDto | LoginDto) => {
       return await db.query.users.findFirst({
-         where: and(eq(users.email, userDto.email), isNull(users.deletedAt)),
+         // lower() cobre contas criadas antes de o e-mail ser normalizado no DTO
+         where: and(
+            eq(sql`lower(${users.email})`, userDto.email),
+            isNull(users.deletedAt),
+         ),
       });
    },
 };
