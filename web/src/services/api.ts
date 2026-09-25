@@ -10,6 +10,12 @@ export class ApiError extends Error {
    }
 }
 
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+   onUnauthorized = handler;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
    const token = getToken();
    const res = await fetch(`${API_URL}${path}`, {
@@ -24,7 +30,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
    const data = await res.json().catch(() => null);
 
    if (!res.ok) {
-      if (res.status === 401) clearToken();
+      if (res.status === 401) {
+         clearToken();
+         onUnauthorized?.();
+      }
       throw new ApiError(res.status, data?.message ?? "Erro inesperado");
    }
 

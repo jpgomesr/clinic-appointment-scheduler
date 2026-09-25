@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { api } from "../services/api";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { api, setUnauthorizedHandler } from "../services/api";
 import { setToken, clearToken } from "../services/token";
 import {
    AuthContext,
@@ -20,6 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          .finally(() => setLoading(false));
    }, []);
 
+   useEffect(() => {
+      setUnauthorizedHandler(() => setUser(null));
+      return () => setUnauthorizedHandler(null);
+   }, []);
+
    const login = async (input: LoginInput) => {
       const { user, token } = await api.post<{ user: User; token: string }>(
          "/auth/login",
@@ -38,14 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
    };
 
-   const logout = async () => {
+   const logout = useCallback(async () => {
       try {
          await api.post("/auth/logout");
       } finally {
          clearToken();
          setUser(null);
       }
-   };
+   }, []);
 
    return (
       <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
