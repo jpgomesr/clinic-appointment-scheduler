@@ -34,10 +34,6 @@ const authService = {
          throw AppError.conflict("Email já cadastrado");
       }
 
-      if (userSignupDto.password !== userSignupDto.confirmPassword) {
-         throw AppError.badRequest("Senhas não conferem");
-      }
-
       const passwordHash = await bcrypt.hash(userSignupDto.password, 10);
 
       const [user] = await authRepository.create(userSignupDto, passwordHash);

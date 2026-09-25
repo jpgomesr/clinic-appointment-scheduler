@@ -132,7 +132,7 @@ requisições seguintes (REST e handshake do Socket.IO).
 
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| `POST` | `/auth/signup` | Cria um usuário (`name`, `email`, `password`, `confirmPassword`) e retorna `{ user, token }` |
+| `POST` | `/auth/signup` | Cria um usuário (`name`, `email`, `password`, `confirmPassword`) e retorna `{ user, token }`; `password === confirmPassword` é validado no próprio schema Zod |
 | `POST` | `/auth/login` | Autentica por `email`/`password` e retorna `{ user, token }` |
 | `GET` | `/auth/me` | Retorna o usuário do token enviado em `Authorization` (rota protegida por `authToken`) |
 | `POST` | `/auth/logout` | Confirma o logout (invalidação do token é responsabilidade do cliente, que o descarta) |
@@ -183,8 +183,8 @@ repositórios são mockados com `mock.method`:
   `appointmentsRepository` mockado, cobrindo criação/edição de agendamento com e sem conflito de
   horário.
 - `test/http/auth.test.ts`: testes de integração HTTP (via `supertest`, batendo direto no `app` do
-  Express) de autenticação — 400 em payload de signup inválido, 401 em rota protegida sem token ou
-  com token inválido.
+  Express) de autenticação — 400 em payload de signup inválido, 400 quando as senhas não conferem
+  (sem consultar o banco), 401 em rota protegida sem token ou com token inválido.
 - `test/http/appointments.test.ts`: testes de integração HTTP do CRUD de agendamentos — 401 sem
   autenticação, 201 ao criar sem conflito, 409 ao criar com conflito de horário.
 - `test/http/error-handler.test.ts`: testes de integração HTTP do tratamento de erros centralizado —
