@@ -49,12 +49,13 @@ npm run dev           # http://localhost:3000
 | `npm start` | Roda a API já compilada (`node dist/index.js`) |
 | `npm run db:generate` | Gera uma nova migration a partir do schema (`src/db/schema.ts`) |
 | `npm run db:migrate` | Aplica as migrations pendentes no banco |
+| `npm test` | Roda a suíte de testes (`node:test`) em `src/**/*.test.ts` e `test/**/*.test.ts` |
 
 ## Variáveis de ambiente (`.env`)
 
 | Variável | Descrição |
 | --- | --- |
-| `SERVER_PORT` | Porta em que a API escuta (padrão `3000`) |
+| `SERVER_PORT` | Porta em que a API escuta (padrão `3000`) — em produção, se `PORT` estiver definida (ex.: injetada pelo Render), ela tem prioridade sobre `SERVER_PORT` |
 | `JWT_SECRET` | Segredo usado para assinar/verificar o JWT (REST e handshake do Socket.IO) |
 | `DATABASE_URL` | Connection string do Postgres, usada pelo Drizzle |
 | `CORS_ORIGIN` | Lista de origens permitidas separadas por vírgula (ex.: `http://localhost:5173,http://localhost:8080`) |
@@ -76,7 +77,7 @@ src/
 │   ├── routes/auth.routes.ts           Rotas de autenticação
 │   ├── controller/auth.controller.ts   Handlers HTTP (login, signup, me, logout)
 │   ├── service/auth.service.ts         Regras de negócio: hash de senha, emissão/verificação de JWT
-│   ├── middleware/auth.middleware.ts   Middleware `authToken` que protege rotas via `Authorization: Bearer`
+│   ├── middleware/auth.middleware.ts   Middleware `authToken` que protege rotas via `Authorization: Bearer`, rejeitando com 401 quando o usuário do token não existe mais ou foi desativado (soft delete)
 │   └── dto/                            Schemas Zod de entrada (login, signup)
 ├── appointments/
 │   ├── routes/appointments.routes.ts         Rotas de agendamentos
@@ -163,6 +164,30 @@ duas camadas:
   resposta 409 usada na checagem de aplicação.
 
 `appointments` e `users` usam soft delete (`deletedAt`); `professionals` não tem essa coluna.
+
+## Testes
+
+```bash
+npm test
+```
+
+Testes com `node:test` (nativo do Node), sem subir servidor real nem depender de um Postgres — os
+repositórios são mockados com `mock.method`:
+
+- `src/appointments/service/appointments.service.test.ts`: testes unitários do service com
+  `appointmentsRepository` mockado, cobrindo criação/edição de agendamento com e sem conflito de
+  horário.
+- `test/http/auth.test.ts`: testes de integração HTTP (via `supertest`, batendo direto no `app` do
+  Express) de autenticação — 400 em payload de signup inválido, 401 em rota protegida sem token ou
+  com token inválido.
+- `test/http/appointments.test.ts`: testes de integração HTTP do CRUD de agendamentos — 401 sem
+  autenticação, 201 ao criar sem conflito, 409 ao criar com conflito de horário.
+- `test/http/error-handler.test.ts`: testes de integração HTTP do tratamento de erros centralizado —
+  404 de rota inexistente, 400 de JSON malformado, 409 de exclusion constraint do Postgres (`23P01`)
+  e 500 genérico sem vazar detalhe interno.
+
+Ainda não há teste de integração real de Socket.IO (criar um agendamento em uma "sessão" e ver
+refletido em outra) nem testes rodando contra um Postgres real — ver "Próximos passos" no README raiz.
 
 ## Tempo real (Socket.IO)
 
