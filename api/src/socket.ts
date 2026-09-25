@@ -2,8 +2,6 @@ import "dotenv/config";
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
-import { parseCookie } from "cookie";
-import { TOKEN_COOKIE } from "./auth/constants/auth.constants";
 import {
    ClientToServerEvents,
    ServerToClientEvents,
@@ -22,14 +20,11 @@ export function setupSocket(httpServer: HttpServer) {
       Record<string, never>,
       SocketData
    >(httpServer, {
-      cors: { origin: corsOrigins, credentials: true },
+      cors: { origin: corsOrigins },
    });
 
    io.use((socket, next) => {
-      const rawCookies = socket.handshake.headers.cookie;
-      const token = rawCookies
-         ? parseCookie(rawCookies)[TOKEN_COOKIE]
-         : undefined;
+      const token = socket.handshake.auth?.token;
       if (!token) return next(new Error("Authentication error"));
 
       jwt.verify(

@@ -19,7 +19,7 @@ describe("POST /auth/signup", () => {
 });
 
 describe("autenticação em rota protegida", () => {
-   test("retorna 401 em JSON sem cookie de token", async () => {
+   test("retorna 401 em JSON sem token", async () => {
       const response = await request(app).get("/appointments");
 
       assert.equal(response.status, 401);
@@ -29,7 +29,7 @@ describe("autenticação em rota protegida", () => {
    test("retorna 401 em JSON com token inválido", async () => {
       const response = await request(app)
          .get("/appointments")
-         .set("Cookie", "token=token-invalido");
+         .set("Authorization", "Bearer token-invalido");
 
       assert.equal(response.status, 401);
       assert.equal(response.body.message, "Token inválido ou expirado");

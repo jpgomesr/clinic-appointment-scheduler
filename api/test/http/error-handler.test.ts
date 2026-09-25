@@ -7,15 +7,14 @@ import request from "supertest";
 import app from "../../src/app";
 import professionalsService from "../../src/professionals/service/professionals.service";
 import appointmentsRepository from "../../src/appointments/repository/appointments.repository";
-import { TOKEN_COOKIE } from "../../src/auth/constants/auth.constants";
 import authRepository from "../../src/auth/repository/auth.repository";
 
-function authCookie() {
+function authHeader() {
    const token = jwt.sign(
       { id: "user-id", email: "teste@teste.com" },
       process.env.JWT_SECRET!,
    );
-   return `${TOKEN_COOKIE}=${token}`;
+   return `Bearer ${token}`;
 }
 
 beforeEach(() => {
@@ -63,7 +62,7 @@ describe("conflito de exclusion constraint no Postgres (23P01)", () => {
 
       const response = await request(app)
          .post("/appointments")
-         .set("Cookie", authCookie())
+         .set("Authorization", authHeader())
          .send({
             startAt: "2026-01-05T09:00:00.000Z",
             endAt: "2026-01-05T10:00:00.000Z",
@@ -86,7 +85,7 @@ describe("erro inesperado no service", () => {
 
       const response = await request(app)
          .get("/professionals")
-         .set("Cookie", authCookie());
+         .set("Authorization", authHeader());
 
       assert.equal(response.status, 500);
       assert.equal(response.body.message, "Erro interno do servidor");

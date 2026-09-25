@@ -1,16 +1,21 @@
 import "dotenv/config";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { TOKEN_COOKIE } from "../constants/auth.constants";
 import { AppError } from "../../shared/errors/app-error";
 import authRepository from "../repository/auth.repository";
+
+export function getBearerToken(req: Request) {
+   const header = req.headers.authorization;
+   if (!header?.startsWith("Bearer ")) return undefined;
+   return header.slice("Bearer ".length);
+}
 
 export async function authToken(
    req: Request,
    res: Response,
    next: NextFunction,
 ) {
-   const token = req.cookies?.[TOKEN_COOKIE];
+   const token = getBearerToken(req);
 
    if (!token) return next(AppError.unauthorized("Token não fornecido"));
 

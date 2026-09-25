@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import app from "../../src/app";
 import appointmentsRepository from "../../src/appointments/repository/appointments.repository";
-import { TOKEN_COOKIE } from "../../src/auth/constants/auth.constants";
 import authRepository from "../../src/auth/repository/auth.repository";
 
 const professionalId = "887e2f72-cd78-410f-8ada-442e50fb0d42";
@@ -15,12 +14,12 @@ const appointmentBody = {
    professionalId,
 };
 
-function authCookie() {
+function authHeader() {
    const token = jwt.sign(
       { id: "user-id", email: "teste@teste.com" },
       process.env.JWT_SECRET!,
    );
-   return `${TOKEN_COOKIE}=${token}`;
+   return `Bearer ${token}`;
 }
 
 beforeEach(() => {
@@ -33,7 +32,7 @@ beforeEach(() => {
 });
 
 describe("POST /appointments", () => {
-   test("retorna 401 sem cookie de autenticação", async () => {
+   test("retorna 401 sem autenticação", async () => {
       const response = await request(app)
          .post("/appointments")
          .send(appointmentBody);
@@ -48,7 +47,7 @@ describe("POST /appointments", () => {
 
       const response = await request(app)
          .post("/appointments")
-         .set("Cookie", authCookie())
+         .set("Authorization", authHeader())
          .send(appointmentBody);
 
       assert.equal(response.status, 201);
@@ -62,7 +61,7 @@ describe("POST /appointments", () => {
 
       const response = await request(app)
          .post("/appointments")
-         .set("Cookie", authCookie())
+         .set("Authorization", authHeader())
          .send(appointmentBody);
 
       assert.equal(response.status, 409);
