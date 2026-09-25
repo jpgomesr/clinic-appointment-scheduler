@@ -142,18 +142,24 @@ do prazo.
 
 Além disso, ficaram de fora por escopo e seriam os próximos passos num projeto real:
 
-3. **Logout com revogação** — o logout hoje é stateless: o JWT continua válido até expirar (8h).
+3. **Controle de edição concorrente** — hoje a última gravação vence: se uma recepção está com o
+   diálogo de edição aberto e outra move o mesmo agendamento, o salvar da primeira sobrescreve a
+   mudança sem aviso (o card é atualizado pelo socket, mas o diálogo aberto não). Faria controle
+   otimista: coluna `updated_at` (ou `version`), o front manda o valor que leu e o
+   `UPDATE ... WHERE id = ? AND updated_at = ?` devolve 409 "alterado por outra pessoa" quando não
+   bate; e o diálogo aberto avisaria ao receber `appointment:updated|cancelled` do mesmo id.
+4. **Logout com revogação** — o logout hoje é stateless: o JWT continua válido até expirar (8h).
    Faria access token curto + refresh token rotativo, com revogação no servidor.
-4. **Escala horizontal do tempo real** — `io.emit` só alcança clientes conectados na mesma
+5. **Escala horizontal do tempo real** — `io.emit` só alcança clientes conectados na mesma
    instância. Com mais de uma instância, usaria o `@socket.io/redis-adapter` (ou `LISTEN/NOTIFY`
    do Postgres) para propagar os eventos entre elas.
-5. **Isolamento por clínica** — os eventos são broadcast global porque o modelo não tem clínica;
+6. **Isolamento por clínica** — os eventos são broadcast global porque o modelo não tem clínica;
    com multi-tenant, cada clínica viraria uma room do Socket.IO.
-6. **Datas com fuso** — trocar `timestamp` por `timestamptz` e fazer a API receber o intervalo
+7. **Datas com fuso** — trocar `timestamp` por `timestamptz` e fazer a API receber o intervalo
    (`from`/`to` em ISO) em vez de uma data UTC, eliminando a compensação de fuso feita no front.
-7. **Modelo do agendamento mais completo** — paciente, descrição e status, além de CRUD de
+8. **Modelo do agendamento mais completo** — paciente, descrição e status, além de CRUD de
    profissionais (hoje populados por seed).
-8. **Rate limit no login** — proteger `/auth/login` e `/auth/signup` contra força bruta.
+9. **Rate limit no login** — proteger `/auth/login` e `/auth/signup` contra força bruta.
 
 ## Uso de IA
 
