@@ -9,7 +9,7 @@ const io = setupSocket(httpServer);
 
 app.locals.io = io;
 
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
 httpServer.listen(PORT, () =>
    logger.info(`API + WS listening on port ${PORT}`),
 );
