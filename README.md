@@ -9,12 +9,45 @@ tela, e criar/mover/cancelar um agendamento em uma tela precisa refletir nas out
 
 | Camada | Escolha | Motivo |
 | --- | --- | --- |
-| Backend | Node.js + Express + TypeScript | Ecossistema que domino bem, tipagem ajuda numa regra de negócio (sobreposição de horários) que precisa ser confiável. Cada módulo (`auth`, `appointments`, `professionals`) é organizado em camadas `routes → controller → service → repository`, isolando o acesso a dados (Drizzle) da regra de negócio. |
+| Backend | Node.js + Express + TypeScript | Venho de Java, mas já tenho experiência em Node/TS; tipagem ajuda numa regra de negócio (sobreposição de horários) que precisa ser confiável. Usei IA como apoio para traduzir alguns padrões de Java para o ecossistema Node/TS (ver "Uso de IA" abaixo). Cada módulo (`auth`, `appointments`, `professionals`) é organizado em camadas `routes → controller → service → repository`, isolando o acesso a dados (Drizzle) da regra de negócio. |
 | Autenticação | JWT + bcrypt, token via `Authorization: Bearer` | Sessão restaurável entre reloads (`localStorage` no cliente). Cookie httpOnly foi descartado porque `web` e `api` rodam em subdomínios diferentes do `onrender.com` em produção (sites diferentes para o navegador), e o ITP do iOS/WebKit bloqueia cookies cross-site mesmo com `SameSite=None; Secure` — quebrava o login só em iPhone/iPad. |
 | Tempo real | Socket.IO | Abstrai reconexão e fallback de transporte; o handshake é autenticado lendo o mesmo token JWT do REST (`socket.handshake.auth.token` + `jwt.verify`). Eventos de agendamento são broadcast global (`io.emit`) para todos os clientes autenticados — não há conceito de clínica no modelo de dados hoje, então isolar por room não se aplica. |
 | Banco | PostgreSQL + Drizzle ORM | Dados relacionais (hoje `users`, `professionals` e `appointments`); Drizzle dá migrations tipadas e a regra "sem sobreposição" é reforçada por uma constraint `EXCLUDE` do Postgres. |
-| Frontend | React + Vite + TypeScript | Build rápido em dev, tipagem compartilhando os contratos da API. |
+| Frontend | React + Vite + TypeScript | Build rápido em dev, tipagem espelhando os contratos da API (`web/src/types/appointment.ts`). |
 | Infra local | Docker Compose (api + web + postgres) | Sobe o ambiente inteiro com um comando, sem exigir Postgres instalado na máquina. |
+
+## Decisões de implementação
+
+Além das escolhas de stack acima, algumas decisões de implementação valem o registro — detalhe de
+cada uma em `api/README.md` ou `web/README.md`:
+
+- **Sobreposição validada em duas camadas.** A checagem na aplicação
+  (`appointments.service.ts`, em `create`/`edit`) dá uma resposta 409 amigável; a constraint
+  `EXCLUDE USING gist` no Postgres é a fonte da verdade contra condição de corrida (duas criações
+  concorrentes passando pela checagem da aplicação ao mesmo tempo). Ver "Regra de não sobreposição"
+  em [`api/README.md`](api/README.md).
+- **Cancelamento por soft delete (`deletedAt`), não apaga a linha.** Mantém histórico dos
+  agendamentos cancelados em vez de perder o registro. `users` usa o mesmo mecanismo, e além de
+  preservar histórico, permite recadastro com o mesmo e-mail (índice único parcial
+  `WHERE deleted_at IS NULL`) e bloqueia usuários desativados de autenticar ou usar um token já
+  emitido. Ver "Regra de não sobreposição" e a seção de auth em [`api/README.md`](api/README.md).
+- **Tratamento de erro centralizado** (`shared/middleware/error-handler.ts`, único middleware
+  final). Resposta consistente para `AppError`, `ZodError`, conflito de constraint do Postgres, JSON
+  malformado e erro genérico — sem vazar detalhe interno — incluindo rotas inexistentes, que também
+  passam pelo mesmo middleware em vez de montar a resposta 404 na mão. Ver "Tratamento de erros" em
+  [`api/README.md`](api/README.md).
+- **Agenda recarrega ao reconectar o socket.** O servidor não reenvia eventos perdidos durante uma
+  queda de conexão, então ao reconectar (evento `reconnect` do Manager) a tela busca o dia de novo em
+  vez de continuar com estado desatualizado. Ver "Tela de Agenda" em [`web/README.md`](web/README.md).
+- **Fila de eventos de socket durante o carregamento inicial** (`useDayAppointments.ts`). Evita que
+  um evento de socket chegado enquanto a lista ainda está carregando seja perdido quando o `GET`
+  (mais lento) resolver por cima depois. Ver `useDayAppointments.ts` em [`web/README.md`](web/README.md).
+- **Profissionais sem CRUD, populados via seed.** Fora do escopo das 5 regras funcionais do
+  enunciado; a prioridade foi dada às regras obrigatórias (ver "Próximos passos" abaixo).
+- **Testes de API com repositórios mockados, sem Postgres real.** Roda rápido e sem exigir infra nos
+  testes; o trade-off é que a própria constraint `EXCLUDE` (fonte da verdade contra condição de
+  corrida) não é exercitada pelos testes atuais — coerente com o item 1 de "Próximos passos" (teste
+  de integração de tempo real). Ver "Testes" em [`api/README.md`](api/README.md).
 
 ## Deploy
 
